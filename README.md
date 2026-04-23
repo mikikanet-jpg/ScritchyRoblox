@@ -54,12 +54,16 @@ Després d’això, es pot iniciar una nova partida amb millores aplicades.
 
 ## Estructura del repositori
 
+```
+
 /projecte-joc
 │
 ├── docs/ → documentació del projecte
 ├── img/ → diagrames
 ├── src/ → codi font
 ├── README.md
+
+```
 
 ---
 
