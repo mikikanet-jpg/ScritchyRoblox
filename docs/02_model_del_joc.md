@@ -122,6 +122,7 @@ Cada classe es convertirà en un script dins de Roblox:
 
 ## 8. Estructura inicial del repositori
 
+```
 /projecte-joc
 │
 ├── docs/
@@ -133,9 +134,8 @@ Cada classe es convertirà en un script dins de Roblox:
 │
 ├── src/
 │
-├── README.md
-
----
+└── README.md
+```
 
 ## 9. Primer commit i README inicial
 
