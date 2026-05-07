@@ -76,7 +76,7 @@ S’ha creat una habitació simple amb diferents zones interactives per al jugad
 
 Inserir captura de pantalla:
 
-![alt text](image3.png)
+![alt text](/img/image3.png)
 
 Breu explicació:
 S’ha implementat un sistema d’interacció amb el PC utilitzant ProximityPrompt i la tecla E.
@@ -87,7 +87,7 @@ S’ha implementat un sistema d’interacció amb el PC utilitzant ProximityProm
 
 Inserir captura de pantalla:
 
-![alt text](/img/diagrama_classes.pngimage-1.png)
+![alt text](/img/image-1.png)
 
 Breu explicació:
 Es mostra l’estructura inicial del repositori i la configuració del projecte amb Rojo.
