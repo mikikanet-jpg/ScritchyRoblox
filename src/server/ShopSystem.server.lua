@@ -1,25 +1,58 @@
 local interactPart = workspace:WaitForChild("PC_Interact")
 local prompt = interactPart:WaitForChild("ProximityPrompt")
 
-local ticketPrice = 10
+local replicatedStorage = game:GetService("ReplicatedStorage")
+
+local openShop = replicatedStorage:WaitForChild("OpenShop")
+local buyTicket = replicatedStorage:WaitForChild("BuyTicket")
+
+local prices = {
+	Basic = 10,
+	Silver = 50,
+	Gold = 150
+}
+
+-- ABRIR TIENDA
 
 prompt.Triggered:Connect(function(player)
+
+	openShop:FireClient(player)
+
+end)
+
+-- COMPRAR TICKETS
+
+buyTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	local leaderstats = player:WaitForChild("leaderstats")
 
 	local money = leaderstats:WaitForChild("Money")
-	local tickets = leaderstats:WaitForChild("Tickets")
 
-	if money.Value >= ticketPrice then
+	local price = prices[ticketType]
 
-		money.Value = money.Value - ticketPrice
-		tickets.Value = tickets.Value + 1
+	if money.Value >= price then
 
-		print(player.Name .. " ha comprado un ticket")
+		money.Value -= price
+
+		if ticketType == "Basic" then
+
+			leaderstats.BasicTickets.Value += 1
+
+		elseif ticketType == "Silver" then
+
+			leaderstats.SilverTickets.Value += 1
+
+		elseif ticketType == "Gold" then
+
+			leaderstats.GoldTickets.Value += 1
+
+		end
+
+		print(player.Name .. " compró un ticket " .. ticketType)
 
 	else
 
-		print(player.Name .. " no tiene suficiente dinero")
+		print("No tiene dinero suficiente")
 
 	end
 
