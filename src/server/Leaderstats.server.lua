@@ -49,4 +49,9 @@ game.Players.PlayerAdded:Connect(function(player)
 	jackpots.Value = 0
 	jackpots.Parent = leaderstats
 
+	local selectedTicket = Instance.new("StringValue")
+	selectedTicket.Name = "SelectedTicket"
+	selectedTicket.Value = "Basic"
+	selectedTicket.Parent = player
+
 end)

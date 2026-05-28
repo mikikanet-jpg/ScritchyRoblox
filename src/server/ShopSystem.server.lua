@@ -6,15 +6,9 @@ local replicatedStorage = game:GetService("ReplicatedStorage")
 local openShop = replicatedStorage:WaitForChild("OpenShop")
 local buyTicket = replicatedStorage:WaitForChild("BuyTicket")
 
-local prices = {
-	Basic = 10,
-	Silver = 50,
-	Gold = 150
-}
+local TicketData = require(game.ReplicatedStorage.Shared.TicketData)
 
 prompt.Triggered:Connect(function(player)
-
-	print("PC usado")
 
 	openShop:FireClient(player)
 
@@ -23,26 +17,19 @@ end)
 buyTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	local leaderstats = player:WaitForChild("leaderstats")
-
 	local money = leaderstats:WaitForChild("Money")
 
-	local price = prices[ticketType]
+	local ticketInfo = TicketData[ticketType]
 
-	if money.Value >= price then
+	if ticketInfo and money.Value >= ticketInfo.Price then
 
-		money.Value -= price
+		money.Value -= ticketInfo.Price
 
-		if ticketType == "Basic" then
+		local ticketStat = leaderstats:FindFirstChild(ticketType .. "Tickets")
 
-			leaderstats.BasicTickets.Value += 1
+		if ticketStat then
 
-		elseif ticketType == "Silver" then
-
-			leaderstats.SilverTickets.Value += 1
-
-		elseif ticketType == "Gold" then
-
-			leaderstats.GoldTickets.Value += 1
+			ticketStat.Value += 1
 
 		end
 
