@@ -7,16 +7,16 @@ prompt.Triggered:Connect(function(player)
 
 	local leaderstats = player:WaitForChild("leaderstats")
 
-	local tickets = leaderstats:WaitForChild("Tickets")
+	local tickets = leaderstats:WaitForChild("BasicTickets")
 	local money = leaderstats:WaitForChild("Money")
 
 	if tickets.Value > 0 then
 
 		tickets.Value -= 1
 
-		local random = math.random(1, 100)
+		local random = math.random(1,100)
 
-		if random <= 45 then
+		if random <= 60 then
 
 			showMessage:FireClient(player, "Has perdido")
 
@@ -38,7 +38,7 @@ prompt.Triggered:Connect(function(player)
 
 	else
 
-		showMessage:FireClient(player, "No tienes tickets")
+		showMessage:FireClient(player, "No tienes tickets básicos")
 
 	end
 

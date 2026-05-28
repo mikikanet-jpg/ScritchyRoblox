@@ -12,15 +12,13 @@ local prices = {
 	Gold = 150
 }
 
--- ABRIR TIENDA
-
 prompt.Triggered:Connect(function(player)
+
+	print("PC usado")
 
 	openShop:FireClient(player)
 
 end)
-
--- COMPRAR TICKETS
 
 buyTicket.OnServerEvent:Connect(function(player, ticketType)
 
@@ -47,12 +45,6 @@ buyTicket.OnServerEvent:Connect(function(player, ticketType)
 			leaderstats.GoldTickets.Value += 1
 
 		end
-
-		print(player.Name .. " compró un ticket " .. ticketType)
-
-	else
-
-		print("No tiene dinero suficiente")
 
 	end
 
