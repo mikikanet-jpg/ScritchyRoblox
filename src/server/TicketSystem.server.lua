@@ -19,12 +19,12 @@ end)
 
 scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
-	local leaderstats = player:WaitForChild("leaderstats")
+	local PlayerData = player:WaitForChild("PlayerData")
 
-	local money = leaderstats:WaitForChild("Money")
+	local money = PlayerData:WaitForChild("Money")
 
 	local ticketName = ticketType .. "Tickets"
-	local tickets = leaderstats:WaitForChild(ticketName)
+	local tickets = PlayerData:WaitForChild(ticketName)
 
 	if tickets.Value <= 0 then
 
@@ -42,13 +42,13 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	if ticketType == "Basic" then
 
-		if random <= 60 then
+		if random <= 35 then
 
 			showMessage:FireClient(player, "Has perdido")
 
-		elseif random <= 95 then
+		elseif random <= 90 then
 
-			local reward = 25
+			local reward = 30
 			money.Value += reward
 
 			showMessage:FireClient(player, "+" .. reward .. "$")
@@ -66,13 +66,13 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	elseif ticketType == "Silver" then
 
-		if random <= 50 then
+		if random <= 25 then
 
 			showMessage:FireClient(player, "Has perdido")
 
-		elseif random <= 90 then
+		elseif random <= 85 then
 
-			local reward = 100
+			local reward = 125
 			money.Value += reward
 
 			showMessage:FireClient(player, "+" .. reward .. "$")
@@ -90,13 +90,13 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	elseif ticketType == "Gold" then
 
-		if random <= 40 then
+		if random <= 15 then
 
 			showMessage:FireClient(player, "Has perdido")
 
-		elseif random <= 85 then
+		elseif random <= 75 then
 
-			local reward = 300
+			local reward = 325
 			money.Value += reward
 
 			showMessage:FireClient(player, "+" .. reward .. "$")

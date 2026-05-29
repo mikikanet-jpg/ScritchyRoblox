@@ -16,8 +16,8 @@ end)
 
 buyTicket.OnServerEvent:Connect(function(player, ticketType)
 
-	local leaderstats = player:WaitForChild("leaderstats")
-	local money = leaderstats:WaitForChild("Money")
+	local PlayerData = player:WaitForChild("PlayerData")
+	local money = PlayerData:WaitForChild("Money")
 
 	local ticketInfo = TicketData[ticketType]
 
@@ -25,7 +25,7 @@ buyTicket.OnServerEvent:Connect(function(player, ticketType)
 
 		money.Value -= ticketInfo.Price
 
-		local ticketStat = leaderstats:FindFirstChild(ticketType .. "Tickets")
+		local ticketStat = PlayerData:FindFirstChild(ticketType .. "Tickets")
 
 		if ticketStat then
 

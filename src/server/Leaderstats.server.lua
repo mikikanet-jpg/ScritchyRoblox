@@ -1,7 +1,7 @@
 game.Players.PlayerAdded:Connect(function(player)
 
 	local leaderstats = Instance.new("Folder")
-	leaderstats.Name = "leaderstats"
+	leaderstats.Name = "PlayerData"
 	leaderstats.Parent = player
 
 	-- DINERO
@@ -42,6 +42,10 @@ game.Players.PlayerAdded:Connect(function(player)
 	ticketLevel.Value = 1
 	ticketLevel.Parent = leaderstats
 
+	local ticketXP = Instance.new("IntValue")
+	ticketXP.Name = "TicketXP"
+	ticketXP.Value = 0
+	ticketXP.Parent = leaderstats
 	-- JACKPOTS
 
 	local jackpots = Instance.new("IntValue")
