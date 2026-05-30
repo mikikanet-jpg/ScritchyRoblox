@@ -14,29 +14,29 @@ local TicketData = {
 	},
 
 	Silver = {
-		Price = 50,
+		Price = 750,
 
 		LoseChance = 50,
 		WinChance = 40,
 		JackpotChance = 10,
 
-		MinReward = 75,
-		MaxReward = 120,
+		MinReward = 500,
+		MaxReward = 2500,
 
-		JackpotReward = 500
+		JackpotReward = 10000
 	},
 
 	Gold = {
-		Price = 150,
+		Price = 10000,
 
 		LoseChance = 40,
 		WinChance = 45,
 		JackpotChance = 15,
 
-		MinReward = 200,
-		MaxReward = 400,
+		MinReward = 5000,
+		MaxReward = 30000,
 
-		JackpotReward = 2000
+		JackpotReward = 100000
 	}
 
 }

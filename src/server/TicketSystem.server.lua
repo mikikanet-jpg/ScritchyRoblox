@@ -36,6 +36,22 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	tickets.Value -= 1
 
+	local ticketXP = PlayerData:WaitForChild("TicketXP")
+	local ticketLevel = PlayerData:WaitForChild("TicketLevel")
+
+	ticketXP.Value += 1
+	print(ticketXP.Value)
+	local requiredXP = ticketLevel.Value * 10
+
+	if ticketXP.Value >= requiredXP then
+
+		ticketXP.Value = 0
+		ticketLevel.Value += 1
+
+		showMessage:FireClient(player, "SUBES A NIVEL " .. ticketLevel.Value)
+
+	end
+
 	local random = math.random(1,100)
 
 	-- BASIC

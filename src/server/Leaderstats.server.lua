@@ -42,10 +42,10 @@ game.Players.PlayerAdded:Connect(function(player)
 	ticketLevel.Value = 1
 	ticketLevel.Parent = leaderstats
 
-	local ticketXP = Instance.new("IntValue")
-	ticketXP.Name = "TicketXP"
-	ticketXP.Value = 0
-	ticketXP.Parent = leaderstats
+	local TicketXP = Instance.new("IntValue")
+	TicketXP.Name = "TicketXP"
+	TicketXP.Value = 0
+	TicketXP.Parent = playerData
 	-- JACKPOTS
 
 	local jackpots = Instance.new("IntValue")
