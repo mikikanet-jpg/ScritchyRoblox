@@ -50,4 +50,9 @@ game.Players.PlayerAdded:Connect(function(player)
 	jackpots.Value = 0
 	jackpots.Parent = playerData
 
+	local prestige = Instance.new("IntValue")
+	prestige.Name = "Prestige"
+	prestige.Value = 0
+	prestige.Parent = playerData
+
 end)
