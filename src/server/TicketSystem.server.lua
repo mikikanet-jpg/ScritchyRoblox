@@ -36,11 +36,11 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	tickets.Value -= 1
 
-	local ticketXP = PlayerData:WaitForChild("TicketXP")
-	local ticketLevel = PlayerData:WaitForChild("TicketLevel")
+	local ticketXP = playerData:WaitForChild("TicketXP")
+	local ticketLevel = playerData:WaitForChild("TicketLevel")
 
 	ticketXP.Value += 1
-	print(ticketXP.Value)
+
 	local requiredXP = ticketLevel.Value * 10
 
 	if ticketXP.Value >= requiredXP then

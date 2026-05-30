@@ -1,61 +1,53 @@
 game.Players.PlayerAdded:Connect(function(player)
 
-	local leaderstats = Instance.new("Folder")
-	leaderstats.Name = "PlayerData"
-	leaderstats.Parent = player
+	local playerData = Instance.new("Folder")
+	playerData.Name = "PlayerData"
+	playerData.Parent = player
 
-	-- DINERO
+	-- MONEY
 
 	local money = Instance.new("IntValue")
 	money.Name = "Money"
 	money.Value = 100
-	money.Parent = leaderstats
+	money.Parent = playerData
 
 	-- TICKETS
 
 	local basicTickets = Instance.new("IntValue")
 	basicTickets.Name = "BasicTickets"
 	basicTickets.Value = 0
-	basicTickets.Parent = leaderstats
+	basicTickets.Parent = playerData
 
 	local silverTickets = Instance.new("IntValue")
 	silverTickets.Name = "SilverTickets"
 	silverTickets.Value = 0
-	silverTickets.Parent = leaderstats
+	silverTickets.Parent = playerData
 
 	local goldTickets = Instance.new("IntValue")
 	goldTickets.Name = "GoldTickets"
 	goldTickets.Value = 0
-	goldTickets.Parent = leaderstats
+	goldTickets.Parent = playerData
 
-	-- SUERTE
+	-- STATS
 
 	local luck = Instance.new("IntValue")
 	luck.Name = "Luck"
 	luck.Value = 1
-	luck.Parent = leaderstats
-
-	-- NIVEL TICKETS
+	luck.Parent = playerData
 
 	local ticketLevel = Instance.new("IntValue")
 	ticketLevel.Name = "TicketLevel"
 	ticketLevel.Value = 1
-	ticketLevel.Parent = leaderstats
+	ticketLevel.Parent = playerData
 
-	local TicketXP = Instance.new("IntValue")
-	TicketXP.Name = "TicketXP"
-	TicketXP.Value = 0
-	TicketXP.Parent = playerData
-	-- JACKPOTS
+	local ticketXP = Instance.new("IntValue")
+	ticketXP.Name = "TicketXP"
+	ticketXP.Value = 0
+	ticketXP.Parent = playerData
 
 	local jackpots = Instance.new("IntValue")
 	jackpots.Name = "Jackpots"
 	jackpots.Value = 0
-	jackpots.Parent = leaderstats
-
-	local selectedTicket = Instance.new("StringValue")
-	selectedTicket.Name = "SelectedTicket"
-	selectedTicket.Value = "Basic"
-	selectedTicket.Parent = player
+	jackpots.Parent = playerData
 
 end)
