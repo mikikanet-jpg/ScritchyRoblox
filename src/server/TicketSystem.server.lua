@@ -39,7 +39,11 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 	local ticketXP = PlayerData:WaitForChild("TicketXP")
 	local ticketLevel = PlayerData:WaitForChild("TicketLevel")
 
-	ticketXP.Value += 1
+	local prestige = PlayerData:WaitForChild("Prestige")
+
+	local xpMultiplier = 2 ^ prestige.Value
+
+	ticketXP.Value += xpMultiplier
 
 	local requiredXP = ticketLevel.Value * 10
 

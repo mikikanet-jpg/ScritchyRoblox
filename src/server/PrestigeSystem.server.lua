@@ -10,7 +10,7 @@ prestigeEvent.OnServerEvent:Connect(function(player)
 
 	local level = playerData:WaitForChild("TicketLevel")
 
-	if level.Value >= 5 then
+	if level.Value >= 2 then
 
         playerData.Prestige.Value += 1
 
@@ -34,7 +34,7 @@ prestigeEvent.OnServerEvent:Connect(function(player)
 
         game.ReplicatedStorage.ShowMessage:FireClient(
             player,
-            "Necesitas llegar al nivel 5"
+            "Necesitas llegar al nivel 20"
         )
 
     end
