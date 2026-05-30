@@ -23,3 +23,4 @@ També s’ha utilitzat per ajudar en la redacció de documentació i organitzac
 
 Registre de l'us de l'IA.
 https://chatgpt.com/share/6a1b07f7-e498-83eb-98db-3376ef0781ae
+(He d'admetre que potser que hi hagi una mica d'insults cap al xat, l'estres hem va superar.)
