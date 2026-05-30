@@ -92,14 +92,14 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 		elseif random <= 85 then
 
-			local reward = 125
+			local reward = 500
 			money.Value += reward
 
 			showMessage:FireClient(player, "+" .. reward .. "$")
 
 		else
 
-			local jackpot = 500
+			local jackpot = 1500
 			money.Value += jackpot
 
 			showMessage:FireClient(player, "JACKPOT PLATA! +" .. jackpot .. "$")
@@ -116,14 +116,14 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 		elseif random <= 75 then
 
-			local reward = 325
+			local reward = 25000
 			money.Value += reward
 
 			showMessage:FireClient(player, "+" .. reward .. "$")
 
 		else
 
-			local jackpot = 2000
+			local jackpot = 50000
 			money.Value += jackpot
 
 			showMessage:FireClient(player, "JACKPOT ORO! +" .. jackpot .. "$")
@@ -131,5 +131,6 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 		end
 
 	end
+	
 
 end)

@@ -10,7 +10,7 @@ prestigeEvent.OnServerEvent:Connect(function(player)
 
 	local level = playerData:WaitForChild("TicketLevel")
 
-	if level.Value >= 2 then
+	if level.Value >= 20 then
 
         playerData.Prestige.Value += 1
 

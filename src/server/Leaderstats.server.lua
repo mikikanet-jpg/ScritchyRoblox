@@ -8,7 +8,7 @@ game.Players.PlayerAdded:Connect(function(player)
 
 	local money = Instance.new("IntValue")
 	money.Name = "Money"
-	money.Value = 100
+	money.Value = 1000000
 	money.Parent = playerData
 
 	-- TICKETS
@@ -55,4 +55,13 @@ game.Players.PlayerAdded:Connect(function(player)
 	prestige.Value = 0
 	prestige.Parent = playerData
 
+	local autoScratch = Instance.new("BoolValue")
+	autoScratch.Name = "AutoScratch"
+	autoScratch.Value = false
+	autoScratch.Parent = playerData
+
+	local autoScratchSpeed = Instance.new("NumberValue")
+	autoScratchSpeed.Name = "AutoScratchSpeed"
+	autoScratchSpeed.Value = 5
+	autoScratchSpeed.Parent = playerData
 end)

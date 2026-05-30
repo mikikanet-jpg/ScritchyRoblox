@@ -1,28 +1,39 @@
-print("LUCK SERVER FUNCIONA")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
-local buyLuck = replicatedStorage:WaitForChild("BuyLuck")
+local upgradeEvent = replicatedStorage:WaitForChild("UpgradeAutoSpeed")
 
 local showMessage = replicatedStorage:WaitForChild("ShowMessage")
 
-buyLuck.OnServerEvent:Connect(function(player)
-print("COMPRA LUCK")
+upgradeEvent.OnServerEvent:Connect(function(player)
+
 	local playerData = player:WaitForChild("PlayerData")
 
 	local money = playerData:WaitForChild("Money")
-	local luck = playerData:WaitForChild("Luck")
 
-	local price = luck.Value * 1000
+	local speed = playerData:WaitForChild("AutoScratchSpeed")
+
+	local price = 2500
+
+	if speed.Value <= 0.5 then
+
+		showMessage:FireClient(
+			player,
+			"Velocidad máxima alcanzada"
+		)
+
+		return
+
+	end
 
 	if money.Value >= price then
 
 		money.Value -= price
 
-		luck.Value += 1
+		speed.Value -= 0.5
 
 		showMessage:FireClient(
 			player,
-			"+1 Luck"
+			"Auto Scratch mejorado"
 		)
 
 	else
