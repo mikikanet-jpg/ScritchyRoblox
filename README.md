@@ -105,6 +105,6 @@ Actualment el joc és totalment funcional i disposa de sistemes de progressió, 
 
 Vídeo del gameplay:
 
-[AFEGIR ENLLAÇ DEL VÍDEO]
+[\[AFEGIR ENLLAÇ DEL VÍDEO\]](https://drive.google.com/file/d/1SJ5-F9cDgQUaQWN0z0m-cOWQACUPEoIy/view?usp=sharing)
 
 ---

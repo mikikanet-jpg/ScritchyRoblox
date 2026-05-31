@@ -24,9 +24,9 @@ buyAutoScratch.OnServerEvent:Connect(function(player)
 
 	end
 
-	if money.Value >= 5000 then
+	if money.Value >= 3000 then
 
-		money.Value -= 5000
+		money.Value -= 3000
 
 		autoScratch.Value = true
 
@@ -34,7 +34,7 @@ buyAutoScratch.OnServerEvent:Connect(function(player)
 
 	else
 
-		showMessage:FireClient(player, "Necesitas 5000$")
+		showMessage:FireClient(player, "Necesitas 3000$")
 
 	end
 

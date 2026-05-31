@@ -8,7 +8,7 @@ game.Players.PlayerAdded:Connect(function(player)
 
 	local money = Instance.new("IntValue")
 	money.Name = "Money"
-	money.Value = 100
+	money.Value = 111
 	money.Parent = playerData
 
 	-- TICKETS
