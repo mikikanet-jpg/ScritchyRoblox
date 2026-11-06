@@ -303,7 +303,19 @@ local function classify(message: string): (Color3, boolean)
 	return Theme.AccentHigh, false
 end
 
+-- Mientras se rasca, los avisos esperan para no tapar el ticket.
+local cardOpen = false
+local toastQueue: { string } = {}
+
 local function showToast(message: string)
+	if cardOpen then
+		table.insert(toastQueue, message)
+		if #toastQueue > MAX_TOASTS then
+			table.remove(toastQueue, 1)
+		end
+		return
+	end
+
 	local color, big = classify(message)
 	toastCounter += 1
 
@@ -363,7 +375,6 @@ end
 ---------------------------------------------------------------------
 
 local backdrop
-local cardOpen = false
 local scratchRequested = false
 local openPanelName: string? = nil
 local panels: { [string]: { root: Frame, scale: UIScale } } = {}
@@ -890,6 +901,18 @@ end)
 -- Ayuda
 ---------------------------------------------------------------------
 
+-- Botones redondos: columna abajo a la izquierda en PC y fila bajo la barra en móvil,
+-- donde la pantalla es más baja y abajo están los controles táctiles.
+local isTouch = UserInputService.TouchEnabled
+local TOUCH_ROW_Y = 76
+
+local function roundButtonLayout(order: number): (Vector2, UDim2, UDim2)
+	if isTouch then
+		return Vector2.new(0, 0), UDim2.fromOffset(16 + order * 50, TOUCH_ROW_Y), UDim2.fromOffset(42, 42)
+	end
+	return Vector2.new(0, 1), UDim2.new(0, 16, 1, -16 - order * 56), UDim2.fromOffset(46, 46)
+end
+
 -- Explica lo que hace el servidor. Si cambian las reglas, hay que actualizar estos textos.
 local helpBody = createPanel("Help", "Cómo funciona", "Qué hace cada cosa del juego", 620)
 
@@ -1009,10 +1032,9 @@ helpCard(6, "👑 Prestigio", {
 })
 
 local infoButton = button({
-	AnchorPoint = Vector2.new(0, 1),
-	-- En pantallas táctiles sube para no quedar bajo el joystick.
-	Position = UserInputService.TouchEnabled and UDim2.new(0, 16, 0.5, 0) or UDim2.new(0, 16, 1, -16),
-	Size = UDim2.fromOffset(46, 46),
+	AnchorPoint = (roundButtonLayout(0)),
+	Position = select(2, roundButtonLayout(0)),
+	Size = select(3, roundButtonLayout(0)),
 	Text = "?",
 	TextSize = 22,
 	Font = FONT_BLACK,
@@ -1269,9 +1291,22 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
+local announceJackpot: (string, string, number, boolean?) -> ()
+local announceQueue: { { any } } = {}
+
 local function closeCard()
 	cardGui.Enabled = false
 	cardOpen = false
+	local waitingToasts = toastQueue
+	toastQueue = {}
+	for _, message in waitingToasts do
+		showToast(message)
+	end
+	local lastAnnounce = announceQueue[#announceQueue]
+	announceQueue = {}
+	if lastAnnounce then
+		announceJackpot(lastAnnounce[1], lastAnnounce[2], lastAnnounce[3], lastAnnounce[4])
+	end
 	if openPanelName == "Scratch" then
 		panels.Scratch.root.Visible = true
 	end
@@ -1478,7 +1513,7 @@ end)
 
 local guideBanner = make("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 76),
+	Position = UDim2.new(0.5, 0, 0, isTouch and 126 or 76),
 	Size = UDim2.new(0.9, 0, 0, 44),
 	BackgroundColor3 = Theme.Accent,
 	Visible = false,
@@ -1600,7 +1635,7 @@ end
 local announceScale = make("UIScale", { Scale = 0.8 })
 local announceBanner = make("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 126),
+	Position = UDim2.new(0.5, 0, 0, isTouch and 176 or 126),
 	Size = UDim2.new(0.9, 0, 0, 50),
 	BackgroundColor3 = Theme.Bg,
 	Visible = false,
@@ -1622,7 +1657,7 @@ local announceLabel = label({
 })
 local announceId = 0
 
-remotes.JackpotAnnounced.OnClientEvent:Connect(function(name: string, ticket: string, amount: number, isFinal: boolean?)
+announceJackpot = function(name: string, ticket: string, amount: number, isFinal: boolean?)
 	announceId += 1
 	local id = announceId
 	if isFinal then
@@ -1638,6 +1673,15 @@ remotes.JackpotAnnounced.OnClientEvent:Connect(function(name: string, ticket: st
 			announceBanner.Visible = false
 		end
 	end)
+end
+
+remotes.JackpotAnnounced.OnClientEvent:Connect(function(name: string, ticket: string, amount: number, isFinal: boolean?)
+	if not cardOpen then
+		announceJackpot(name, ticket, amount, isFinal)
+	elseif name ~= player.DisplayName then
+		-- El tuyo ya se ve en el ticket.
+		table.insert(announceQueue, { name, ticket, amount, isFinal })
+	end
 end)
 
 ---------------------------------------------------------------------
@@ -1701,9 +1745,9 @@ equippedPet.Changed:Connect(refreshPets)
 refreshPets()
 
 local petsButton = button({
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UserInputService.TouchEnabled and UDim2.new(0, 16, 0.5, -56) or UDim2.new(0, 16, 1, -72),
-	Size = UDim2.fromOffset(46, 46),
+	AnchorPoint = (roundButtonLayout(1)),
+	Position = select(2, roundButtonLayout(1)),
+	Size = select(3, roundButtonLayout(1)),
 	Text = "🐶",
 	TextSize = 22,
 	BackgroundColor3 = Theme.Bg,
@@ -1780,9 +1824,9 @@ stats.Money.Changed:Connect(refreshRoom)
 refreshRoom()
 
 local roomButton = button({
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UserInputService.TouchEnabled and UDim2.new(0, 16, 0.5, -112) or UDim2.new(0, 16, 1, -128),
-	Size = UDim2.fromOffset(46, 46),
+	AnchorPoint = (roundButtonLayout(2)),
+	Position = select(2, roundButtonLayout(2)),
+	Size = select(3, roundButtonLayout(2)),
 	Text = "🏠",
 	TextSize = 22,
 	BackgroundColor3 = Theme.Bg,
@@ -1822,9 +1866,9 @@ for _, mission in MissionData.Achievements do
 end
 
 local missionsButton = button({
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UserInputService.TouchEnabled and UDim2.new(0, 16, 0.5, -168) or UDim2.new(0, 16, 1, -184),
-	Size = UDim2.fromOffset(46, 46),
+	AnchorPoint = (roundButtonLayout(3)),
+	Position = select(2, roundButtonLayout(3)),
+	Size = select(3, roundButtonLayout(3)),
 	Text = "🎯",
 	TextSize = 22,
 	BackgroundColor3 = Theme.Bg,
@@ -2075,12 +2119,15 @@ remotes.OpenScratch.OnClientEvent:Connect(function()
 end)
 
 remotes.ShowMessage.OnClientEvent:Connect(function(message: string)
-	showToast(message)
-
 	-- Los resultados manuales también se muestran en grande en la mesa.
 	local isAuto = message:sub(1, 5) == "[AUTO"
 	local isResult = message:sub(1, 1) == "+" and message ~= "+1 Luck"
 	isResult = isResult or message:lower():find("jackpot", 1, true) ~= nil or message:lower():find("perdido", 1, true) ~= nil
+	-- Con el ticket abierto, el resultado ya se ve en él.
+	if not (cardOpen and isResult and not isAuto) then
+		showToast(message)
+	end
+
 	if isResult and not isAuto then
 		local color = classify(message)
 		resultLabel.Text = message
