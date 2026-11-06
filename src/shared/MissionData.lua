@@ -5,9 +5,9 @@ local MissionData = {}
 
 -- Se reinician cada día. La recompensa crece con el nivel y no se pierde nada por no entrar.
 MissionData.Daily = {
-	{ id = "daily_scratch", name = "Rasca 20 tickets hoy", emoji = "🎟️", stat = "DailyScratched", target = 20, rewardPerLevel = 100 },
-	{ id = "daily_earn", name = "Gana $1.000 hoy", emoji = "💰", stat = "DailyEarned", target = 1000, rewardPerLevel = 100 },
-	{ id = "daily_jackpot", name = "Saca un jackpot hoy", emoji = "🎉", stat = "DailyJackpots", target = 1, rewardPerLevel = 300 },
+	{ id = "daily_scratch", name = "Rasca 20 tickets", emoji = "🎟️", stat = "DailyScratched", target = 20, rewardPerLevel = 100 },
+	{ id = "daily_earn", name = "Gana $1.000", emoji = "💰", stat = "DailyEarned", target = 1000, rewardPerLevel = 100 },
+	{ id = "daily_jackpot", name = "Saca un jackpot", emoji = "🎉", stat = "DailyJackpots", target = 1, rewardPerLevel = 300 },
 }
 
 -- Logros permanentes: se reclaman una vez.

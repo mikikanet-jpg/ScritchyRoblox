@@ -17,6 +17,7 @@ local TicketData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local PetData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PetData")) :: any
 local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData")) :: any
 local MissionData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MissionData")) :: any
+local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang")) :: any
 
 local remotes = {
 	ShowMessage = ReplicatedStorage:WaitForChild("ShowMessage") :: RemoteEvent,
@@ -137,8 +138,8 @@ end
 -- 1234567 -> 1.234.567
 local function formatNumber(value: number): string
 	local text = tostring(math.floor(math.abs(value)))
-	text = text:reverse():gsub("(%d%d%d)", "%1."):reverse()
-	if text:sub(1, 1) == "." then
+	text = text:reverse():gsub("(%d%d%d)", "%1" .. Lang.thousands):reverse()
+	if text:sub(1, 1) == Lang.thousands then
 		text = text:sub(2)
 	end
 	return (value < 0 and "-" or "") .. text
@@ -2020,6 +2021,42 @@ refreshSpecialCount()
 refreshUpgrades()
 refreshPrestige()
 refreshLevel()
+
+---------------------------------------------------------------------
+-- Idioma
+---------------------------------------------------------------------
+
+-- Traduce cualquier texto de la interfaz en el momento en que se muestra.
+local function localizeLabel(object: Instance)
+	if not object:IsA("TextLabel") and not object:IsA("TextButton") then
+		return
+	end
+	local textObject = object :: any
+	local function apply()
+		local translated = Lang.t(textObject.Text)
+		if translated ~= textObject.Text then
+			textObject.Text = translated
+		end
+	end
+	textObject:GetPropertyChangedSignal("Text"):Connect(apply)
+	apply()
+end
+
+if Lang.current ~= "es" then
+	for _, gui in { hudGui, modalGui, toastGui, cardGui } do
+		gui.DescendantAdded:Connect(localizeLabel)
+		for _, descendant in gui:GetDescendants() do
+			localizeLabel(descendant)
+		end
+	end
+	for _, target in { pcTarget, tableTarget } do
+		local prompt = target:FindFirstChildOfClass("ProximityPrompt")
+		if prompt then
+			prompt.ActionText = Lang.t(prompt.ActionText)
+			prompt.ObjectText = Lang.t(prompt.ObjectText)
+		end
+	end
+end
 
 ---------------------------------------------------------------------
 -- Eventos del servidor

@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData"))
+local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang"))
 
 local playerData = Players.LocalPlayer:WaitForChild("PlayerData")
 local roomItems = playerData:WaitForChild("RoomItems")
@@ -82,7 +83,7 @@ function builders.posters(parent)
 		caption.BackgroundTransparency = 1
 		caption.Position = UDim2.fromScale(0, 0.7)
 		caption.Size = UDim2.fromScale(1, 0.25)
-		caption.Text = design.caption
+		caption.Text = Lang.t(design.caption)
 		caption.Font = Enum.Font.GothamBlack
 		caption.TextSize = 34
 		caption.TextColor3 = Color3.new(1, 1, 1)
