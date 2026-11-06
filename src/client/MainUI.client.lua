@@ -900,10 +900,21 @@ helpCard(4, "🤖 Auto Scratch", {
 helpCard(5, "⚡ Velocidad", {
 	"Cada mejora quita 0,5 s de espera, desde 5 s hasta un mínimo de 0,5 s.",
 })
-helpCard(7, "🐾 Mascotas", {
+local petLines = {
 	"Al rascar a mano puede salir una mascota: 5% con Básico, 10% con Plata y 15% con Oro. Si ya la tienes, no pasa nada.",
-	"Equipa una en el botón del perrito: te sigue y sube los premios. El prestigio no te la quita.",
-})
+	"Equipa una en el botón del perrito: te sigue y sube los premios de los tickets, también con Auto Scratch. El prestigio no te la quita.",
+}
+for _, rarityName in { "Common", "Rare", "Epic", "Legendary" } do
+	local names = {}
+	for _, pet in PetData.Pets do
+		if pet.rarity == rarityName then
+			table.insert(names, pet.name .. " +" .. math.round(pet.bonus * 100) .. "%")
+		end
+	end
+	local rarity = PetData.Rarities[rarityName]
+	table.insert(petLines, rarity.label .. " (" .. rarity.weight .. "% de las que salen): " .. table.concat(names, ", "))
+end
+helpCard(7, "🐶 Mascotas", petLines)
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
