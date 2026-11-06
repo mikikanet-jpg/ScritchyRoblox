@@ -3,6 +3,7 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PetService = require(script.Parent:WaitForChild("PetService"))
+local MissionService = require(script.Parent:WaitForChild("MissionService"))
 local TicketData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData"))
 
 local interactPart = workspace:WaitForChild("TicketTable_Interact")
@@ -69,6 +70,14 @@ local function finishScratch(player, scratch)
 	end
 
 	playerData.TutorialDone.Value = true
+
+	MissionService.recordScratch(playerData)
+	if scratch.reward > 0 then
+		MissionService.recordEarned(playerData, scratch.reward)
+	end
+	if scratch.kind == "jackpot" then
+		MissionService.recordJackpot(playerData)
+	end
 
 	local newPet = PetService.rollDrop(playerData, scratch.ticketType)
 	if newPet then

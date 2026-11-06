@@ -16,6 +16,7 @@ local data = player:WaitForChild("PlayerData")
 local TicketData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData")) :: any
 local PetData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PetData")) :: any
 local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData")) :: any
+local MissionData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MissionData")) :: any
 
 local remotes = {
 	ShowMessage = ReplicatedStorage:WaitForChild("ShowMessage") :: RemoteEvent,
@@ -992,6 +993,11 @@ helpCard(9, "🏆 Tiquet Final", {
 	"Es el objetivo del juego. Cuesta " .. money(finalInfo.Price) .. " y pide nivel " .. finalInfo.UnlockLevel .. " y al menos " .. finalInfo.UnlockPrestige .. " prestigio.",
 	"Siempre se gana y solo se completa una vez: recibes " .. money(finalInfo.Reward) .. ", el Fénix dorado y un 🏆 junto a tu nivel. Auto Scratch no lo rasca.",
 })
+helpCard(10, "🎯 Misiones y logros", {
+	"Abre el botón de la diana. Cuando completes una, pulsa Reclamar para cobrar el premio: un punto naranja te avisa.",
+	"Las misiones de hoy se renuevan cada día y su premio crece con tu nivel. Si un día no juegas, no pierdes nada.",
+	"Los logros se cobran una sola vez. Los tickets de Auto Scratch no cuentan como rascados, pero su dinero sí cuenta como ganado.",
+})
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
@@ -1781,6 +1787,96 @@ local roomButton = button({
 	openPanel("Room")
 end)
 stroke(Theme.Stroke, 0.2).Parent = roomButton
+
+---------------------------------------------------------------------
+-- Misiones y logros
+---------------------------------------------------------------------
+
+local claimMission = ReplicatedStorage:WaitForChild("ClaimMission") :: RemoteEvent
+local missionsBody = createPanel("Missions", "Misiones", "Las de hoy se renuevan cada día. Los logros son para siempre", 620)
+
+type MissionRow = { mission: any, isDaily: boolean, row: Row }
+local missionRows: { MissionRow } = {}
+
+local function addMissionRow(mission: any, isDaily: boolean)
+	local colorA = isDaily and Color3.fromRGB(125, 211, 252) or Color3.fromRGB(252, 211, 77)
+	local colorB = isDaily and Color3.fromRGB(2, 132, 199) or Color3.fromRGB(217, 119, 6)
+	local row = createRow(missionsBody, #missionRows + 1, mission.emoji, colorA, colorB, function()
+		if MissionData.progress(mission, data, isDaily) >= mission.target and not MissionData.isClaimed(mission, data, isDaily) then
+			claimMission:FireServer(mission.id)
+		end
+	end)
+	table.insert(missionRows, { mission = mission, isDaily = isDaily, row = row })
+end
+
+for _, mission in MissionData.Daily do
+	addMissionRow(mission, true)
+end
+for _, mission in MissionData.Achievements do
+	addMissionRow(mission, false)
+end
+
+local missionsButton = button({
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UserInputService.TouchEnabled and UDim2.new(0, 16, 0.5, -168) or UDim2.new(0, 16, 1, -184),
+	Size = UDim2.fromOffset(46, 46),
+	Text = "🎯",
+	TextSize = 22,
+	BackgroundColor3 = Theme.Bg,
+	Radius = 23,
+	Parent = hudGui,
+}, function()
+	openPanel("Missions")
+end)
+stroke(Theme.Stroke, 0.2).Parent = missionsButton
+
+local missionsDot = make("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(1, -4, 0, 6),
+	Size = UDim2.fromOffset(12, 12),
+	BackgroundColor3 = Theme.Amber,
+	Visible = false,
+	Parent = missionsButton,
+}, { corner(6) })
+
+local readyMissions: { [string]: boolean } = {}
+local missionsStarted = false
+
+local function refreshMissions()
+	local anyReady = false
+	for _, entry in missionRows do
+		local mission, row, isDaily = entry.mission, entry.row, entry.isDaily
+		local progress = MissionData.progress(mission, data, isDaily)
+		local reward = MissionData.reward(mission, data)
+		local claimed = MissionData.isClaimed(mission, data, isDaily)
+		local ready = progress >= mission.target and not claimed
+
+		row.title.Text = (isDaily and "Hoy: " or "") .. mission.name
+		row.detail.Text = "Premio: " .. money(reward)
+		if claimed then
+			setButton(row, "Hecho", false)
+			row.action.TextColor3 = Theme.Green
+		elseif ready then
+			setButton(row, "Reclamar", true, Theme.Green)
+			row.action.TextColor3 = Theme.Bg
+			anyReady = true
+		else
+			setButton(row, formatNumber(progress) .. "/" .. formatNumber(mission.target), false)
+		end
+
+		if ready and missionsStarted and not readyMissions[mission.id] then
+			showToast("¡Misión lista! Reclámala en 🎯")
+		end
+		readyMissions[mission.id] = ready
+	end
+	missionsDot.Visible = anyReady
+	missionsStarted = true
+end
+
+for _, name in MissionData.WatchedStats do
+	stat(name).Changed:Connect(refreshMissions)
+end
+refreshMissions()
 
 local function refreshTickets()
 	for _, tier in Tiers do

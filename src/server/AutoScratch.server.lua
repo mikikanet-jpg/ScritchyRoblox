@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
 local PetService = require(script.Parent:WaitForChild("PetService"))
+local MissionService = require(script.Parent:WaitForChild("MissionService"))
 local TicketData = require(replicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData"))
 
 local buyAutoScratch = replicatedStorage:WaitForChild("BuyAutoScratch")
@@ -52,6 +53,7 @@ local function runAutoScratch(player)
 					tickets.Value -= 1
 					local reward = PetService.applyBonus(playerData, math.random(ticket.min, ticket.max))
 					playerData.Money.Value += reward
+					MissionService.recordEarned(playerData, reward)
 					showMessage:FireClient(player, "[AUTO " .. ticket.label .. "] +" .. reward .. "$")
 					break
 				end
