@@ -7,6 +7,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
@@ -376,6 +380,8 @@ end
 
 local backdrop
 local scratchRequested = false
+-- Se avisa aquí cuando cambia lo que hay abierto, para el mando.
+local uiChanged: () -> () = function() end
 local openPanelName: string? = nil
 local panels: { [string]: { root: Frame, scale: UIScale } } = {}
 
@@ -386,6 +392,7 @@ local function closePanels()
 	local name = openPanelName :: string
 	local panel = panels[name]
 	openPanelName = nil
+	uiChanged()
 	tween(backdrop, 0.18, { BackgroundTransparency = 1 })
 	tween(panel.scale, 0.14, { Scale = 0.94 })
 	task.delay(0.14, function()
@@ -416,6 +423,7 @@ local function openPanel(name: string)
 	panel.scale.Scale = 0.92
 	panel.root.Visible = true
 	tween(panel.scale, 0.28, { Scale = 1 }, Enum.EasingStyle.Back)
+	uiChanged()
 end
 
 backdrop = make("TextButton", {
@@ -425,6 +433,7 @@ backdrop = make("TextButton", {
 	BackgroundTransparency = 1,
 	Text = "",
 	AutoButtonColor = false,
+	Selectable = false,
 	Visible = false,
 	Parent = modalGui,
 })
@@ -910,7 +919,9 @@ local function roundButtonLayout(order: number): (Vector2, UDim2, UDim2)
 	if isTouch then
 		return Vector2.new(0, 0), UDim2.fromOffset(16 + order * 50, TOUCH_ROW_Y), UDim2.fromOffset(42, 42)
 	end
-	return Vector2.new(0, 1), UDim2.new(0, 16, 1, -16 - order * 56), UDim2.fromOffset(46, 46)
+	-- Las teles pueden recortar los bordes, así que en consola se deja más margen.
+	local margin = GuiService:IsTenFootInterface() and 48 or 16
+	return Vector2.new(0, 1), UDim2.new(0, margin, 1, -margin - order * 56), UDim2.fromOffset(46, 46)
 end
 
 -- Explica lo que hace el servidor. Si cambian las reglas, hay que actualizar estos textos.
@@ -1026,6 +1037,11 @@ helpCard(10, "🎯 Misiones y logros", {
 	"Las misiones de hoy se renuevan cada día y su premio crece con tu nivel. Si un día no juegas, no pierdes nada.",
 	"Los logros se cobran una sola vez. Los tickets de Auto Scratch no cuentan como rascados, pero su dinero sí cuenta como ganado.",
 })
+helpCard(11, "🎮 Mando y consolas", {
+	"Y abre las mejoras. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo).",
+	"En los menús, muévete con la cruceta o el stick izquierdo, confirma con A y cierra con B (en PlayStation, X y círculo).",
+	"Rasca moviendo el stick derecho o pulsa A para revelar. Para comprar o rascar, acércate y usa el botón que indica el aviso.",
+})
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
@@ -1083,6 +1099,7 @@ make("TextButton", {
 	BackgroundTransparency = 1,
 	Text = "",
 	AutoButtonColor = false,
+	Selectable = false,
 	Parent = cardGui,
 })
 
@@ -1310,6 +1327,7 @@ local function closeCard()
 	if openPanelName == "Scratch" then
 		panels.Scratch.root.Visible = true
 	end
+	uiChanged()
 end
 
 local revealButton = button({
@@ -1431,6 +1449,7 @@ finishScratchCard = function()
 	revealButton.Visible = false
 	againButton.Visible = true
 	closeButton.Visible = true
+	uiChanged()
 	task.defer(function()
 		local left = activeTier and stats[activeTier.id].Value or 0
 		againButton.Text = "Rascar otro (" .. formatNumber(left) .. ")"
@@ -1500,6 +1519,7 @@ local function openCard(ticketType: string, kind: string, reward: number)
 		panels.Scratch.root.Visible = false
 	end
 	cardGui.Enabled = true
+	uiChanged()
 end
 
 remotes.ScratchStarted.OnClientEvent:Connect(function(ticketType: string, kind: string, reward: number)
@@ -2065,6 +2085,217 @@ refreshSpecialCount()
 refreshUpgrades()
 refreshPrestige()
 refreshLevel()
+
+---------------------------------------------------------------------
+-- Mando y consolas
+---------------------------------------------------------------------
+
+local isConsole = GuiService:IsTenFootInterface()
+local SELECTION_GROUP = "ScratchMenus"
+
+local GAMEPAD_INPUTS = {
+	[Enum.UserInputType.Gamepad1] = true,
+	[Enum.UserInputType.Gamepad2] = true,
+	[Enum.UserInputType.Gamepad3] = true,
+	[Enum.UserInputType.Gamepad4] = true,
+}
+
+local function usingGamepad(): boolean
+	return isConsole or GAMEPAD_INPUTS[UserInputService:GetLastInputType()] == true
+end
+
+if isConsole then
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+	end)
+end
+
+-- Barra de atajos con los iconos del mando que se esté usando.
+local hintBar = make("Frame", {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, isConsole and -40 or -12),
+	Size = UDim2.fromOffset(0, 40),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundColor3 = Theme.Bg,
+	BackgroundTransparency = 0.1,
+	Visible = false,
+	Parent = hudGui,
+}, {
+	corner(12),
+	padding(10, 0),
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+
+local SHORTCUTS = {
+	{ key = Enum.KeyCode.ButtonY, panel = "Upgrades", text = "Mejoras" },
+	{ key = Enum.KeyCode.DPadUp, panel = "Missions", text = "Misiones" },
+	{ key = Enum.KeyCode.DPadRight, panel = "Room", text = "Habitación" },
+	{ key = Enum.KeyCode.DPadLeft, panel = "Pets", text = "Mascotas" },
+	{ key = Enum.KeyCode.DPadDown, panel = "Help", text = "Ayuda" },
+}
+
+for index, shortcut in SHORTCUTS do
+	make("ImageLabel", {
+		Size = UDim2.fromOffset(24, 24),
+		BackgroundTransparency = 1,
+		Image = UserInputService:GetImageForKeyCode(shortcut.key),
+		LayoutOrder = index * 2,
+		Parent = hintBar,
+	})
+	label({
+		Size = UDim2.fromOffset(0, 24),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Text = shortcut.text,
+		Font = FONT_BOLD,
+		TextSize = 14,
+		TextTruncate = Enum.TextTruncate.None,
+		LayoutOrder = index * 2 + 1,
+		Parent = hintBar,
+	})
+end
+
+-- Punto de rascado que se mueve con el stick derecho.
+local stickCursor = make("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Size = UDim2.fromOffset(BRUSH_RADIUS * 2, BRUSH_RADIUS * 2),
+	BackgroundTransparency = 1,
+	Visible = false,
+	ZIndex = 6,
+	Parent = zone,
+}, { corner(BRUSH_RADIUS), stroke(Color3.new(1, 1, 1)) })
+
+local stickInput = Vector2.zero
+local cursorPoint = Vector2.new(ZONE_W / 2, ZONE_H / 2)
+
+local function firstButtonIn(root: Instance): GuiObject?
+	local best = nil
+	for _, descendant in root:GetDescendants() do
+		if descendant:IsA("TextButton") and descendant:FindFirstAncestorOfClass("ScrollingFrame") then
+			if not best or descendant.AbsolutePosition.Y < best.AbsolutePosition.Y then
+				best = descendant
+			end
+		end
+	end
+	return best
+end
+
+local function stickAction(_, inputState: Enum.UserInputState, input: InputObject)
+	if inputState == Enum.UserInputState.Cancel or inputState == Enum.UserInputState.End then
+		stickInput = Vector2.zero
+	else
+		stickInput = Vector2.new(input.Position.X, input.Position.Y)
+	end
+	return Enum.ContextActionResult.Sink
+end
+
+local stickBound = false
+
+uiChanged = function()
+	local scratching = cardOpen and not revealed
+	if scratching and not stickBound then
+		stickBound = true
+		ContextActionService:BindActionAtPriority("ScratchStick", stickAction, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.Thumbstick2)
+	elseif not scratching and stickBound then
+		stickBound = false
+		stickInput = Vector2.zero
+		ContextActionService:UnbindAction("ScratchStick")
+	end
+
+	local gamepad = usingGamepad()
+	hintBar.Visible = gamepad and not cardOpen and openPanelName == nil
+	stickCursor.Visible = gamepad and scratching
+	if scratching then
+		foilHint.Text = gamepad and "RASCA CON EL STICK DERECHO" or "RASCA AQUÍ"
+		foilHint.TextSize = gamepad and 20 or 30
+		cursorPoint = Vector2.new(ZONE_W / 2, ZONE_H / 2)
+		stickCursor.Position = UDim2.fromOffset(cursorPoint.X, cursorPoint.Y)
+	end
+
+	GuiService:RemoveSelectionGroup(SELECTION_GROUP)
+	if not gamepad then
+		if GuiService.SelectedObject and (GuiService.SelectedObject:IsDescendantOf(modalGui) or GuiService.SelectedObject:IsDescendantOf(cardGui)) then
+			GuiService.SelectedObject = nil
+		end
+		return
+	end
+
+	local target: GuiObject? = nil
+	if cardOpen then
+		GuiService:AddSelectionParent(SELECTION_GROUP, card)
+		if not revealed then
+			target = revealButton
+		elseif activeTier and stats[activeTier.id].Value > 0 then
+			target = againButton
+		else
+			target = closeButton
+		end
+	elseif openPanelName then
+		local root = panels[openPanelName :: string].root
+		GuiService:AddSelectionParent(SELECTION_GROUP, root)
+		target = firstButtonIn(root)
+	end
+	GuiService.SelectedObject = target
+end
+
+UserInputService.LastInputTypeChanged:Connect(uiChanged)
+
+RunService.RenderStepped:Connect(function(deltaTime: number)
+	if not (cardOpen and not revealed and stickInput.Magnitude > 0.2) then
+		return
+	end
+	-- En el stick, arriba es positivo; en pantalla, abajo.
+	local movement = Vector2.new(stickInput.X, -stickInput.Y) * 320 * deltaTime
+	cursorPoint = Vector2.new(
+		math.clamp(cursorPoint.X + movement.X, 0, ZONE_W),
+		math.clamp(cursorPoint.Y + movement.Y, 0, ZONE_H)
+	)
+	stickCursor.Position = UDim2.fromOffset(cursorPoint.X, cursorPoint.Y)
+	scratchTo(zone.AbsolutePosition + Vector2.new(cursorPoint.X / ZONE_W, cursorPoint.Y / ZONE_H) * zone.AbsoluteSize)
+end)
+
+local function menuAction(_, inputState: Enum.UserInputState, input: InputObject)
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+
+	if input.KeyCode == Enum.KeyCode.ButtonB then
+		if cardOpen then
+			if revealed then
+				closeCard()
+			end
+			return Enum.ContextActionResult.Sink
+		elseif openPanelName then
+			closePanels()
+			return Enum.ContextActionResult.Sink
+		end
+		return Enum.ContextActionResult.Pass
+	end
+
+	-- Con un menú abierto, la cruceta se usa para moverse por él.
+	if cardOpen or openPanelName then
+		return Enum.ContextActionResult.Pass
+	end
+	for _, shortcut in SHORTCUTS do
+		if shortcut.key == input.KeyCode then
+			openPanel(shortcut.panel)
+			return Enum.ContextActionResult.Sink
+		end
+	end
+	return Enum.ContextActionResult.Pass
+end
+
+local menuKeys = { Enum.KeyCode.ButtonB }
+for _, shortcut in SHORTCUTS do
+	table.insert(menuKeys, shortcut.key)
+end
+ContextActionService:BindAction("ScratchMenuKeys", menuAction, false, table.unpack(menuKeys))
+
+uiChanged()
 
 ---------------------------------------------------------------------
 -- Idioma

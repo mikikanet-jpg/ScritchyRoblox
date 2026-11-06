@@ -156,6 +156,13 @@ local EXACT = {
 	["Ordenador"] = "Computer",
 	["Rascar Ticket"] = "Scratch Ticket",
 	["Mesa"] = "Table",
+	["Habitación"] = "Room",
+	["Ayuda"] = "Help",
+	["RASCA CON EL STICK DERECHO"] = "SCRATCH WITH THE RIGHT STICK",
+	["🎮 Mando y consolas"] = "🎮 Controller and consoles",
+	["Y abre las mejoras. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo)."] = "Y opens upgrades. The D-pad opens missions (up), room (right), pets (left) and help (down).",
+	["En los menús, muévete con la cruceta o el stick izquierdo, confirma con A y cierra con B (en PlayStation, X y círculo)."] = "In menus, move with the D-pad or left stick, confirm with A and close with B (on PlayStation, X and circle).",
+	["Rasca moviendo el stick derecho o pulsa A para revelar. Para comprar o rascar, acércate y usa el botón que indica el aviso."] = "Scratch by moving the right stick or press A to reveal. To buy or scratch, get close and use the button the prompt shows.",
 }
 
 -- Nombres que aparecen dentro de textos con números.
