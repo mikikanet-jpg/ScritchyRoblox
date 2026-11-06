@@ -3,6 +3,7 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PetService = require(script.Parent:WaitForChild("PetService"))
+local TicketData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData"))
 
 local interactPart = workspace:WaitForChild("TicketTable_Interact")
 local prompt = interactPart:WaitForChild("ProximityPrompt")
@@ -28,14 +29,7 @@ local jackpotAnnounced = getRemote("JackpotAnnounced")
 
 local AUTO_REVEAL_SECONDS = 120
 
--- lose y win son el límite superior de una tirada del 1 al 100.
-local OUTCOMES = {
-	Basic = { lose = 35, win = 90, reward = 30, jackpot = 100, jackpotText = "JACKPOT! +" },
-	Silver = { lose = 25, win = 85, reward = 500, jackpot = 1500, jackpotText = "JACKPOT PLATA! +" },
-	Gold = { lose = 15, win = 75, reward = 25000, jackpot = 50000, jackpotText = "JACKPOT ORO! +" },
-}
-
-local TICKET_NAMES = { Basic = "BÁSICO", Silver = "PLATA", Gold = "ORO" }
+local TICKET_NAMES = { Basic = "BÁSICO", Silver = "PLATA", Gold = "ORO", Pizza = "PIZZA", Space = "ESPACIO", Zombie = "ZOMBI" }
 
 local pending = {}
 
@@ -93,7 +87,17 @@ local function finishScratch(player, scratch)
 		showMessage:FireClient(player, "SUBES A NIVEL " .. ticketLevel.Value)
 	end
 
-	if scratch.kind == "lose" then
+	if scratch.kind == "final" then
+		playerData.Money.Value += scratch.reward
+		playerData.GameWon.Value = true
+		if not string.find(playerData.OwnedPets.Value, "phoenix", 1, true) then
+			local owned = playerData.OwnedPets.Value
+			playerData.OwnedPets.Value = owned == "" and "phoenix" or (owned .. ",phoenix")
+		end
+		showMessage:FireClient(player, "¡JUEGO COMPLETADO!")
+		celebrateJackpot(player)
+		jackpotAnnounced:FireAllClients(player.DisplayName, "FINAL", scratch.reward, true)
+	elseif scratch.kind == "lose" then
 		showMessage:FireClient(player, "Has perdido")
 	elseif scratch.kind == "win" then
 		playerData.Money.Value += scratch.reward
@@ -101,6 +105,11 @@ local function finishScratch(player, scratch)
 	else
 		playerData.Money.Value += scratch.reward
 		playerData.Jackpots.Value += 1
+		local gift = scratch.gift
+		if gift then
+			playerData[gift.stat].Value += gift.amount
+			showMessage:FireClient(player, "¡Y además " .. gift.text .. "!")
+		end
 		showMessage:FireClient(player, scratch.text .. scratch.reward .. "$")
 		celebrateJackpot(player)
 		jackpotAnnounced:FireAllClients(player.DisplayName, TICKET_NAMES[scratch.ticketType], scratch.reward)
@@ -108,7 +117,7 @@ local function finishScratch(player, scratch)
 end
 
 scratchTicket.OnServerEvent:Connect(function(player, ticketType)
-	local outcome = typeof(ticketType) == "string" and OUTCOMES[ticketType]
+	local outcome = typeof(ticketType) == "string" and ticketType ~= "Order" and TicketData[ticketType]
 	if not outcome or pending[player] then
 		return
 	end
@@ -128,15 +137,17 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	local roll = math.random(1, 100)
 	local scratch
-	if not playerData.TutorialDone.Value then
+	if outcome.IsFinal then
+		scratch = { kind = "final", reward = outcome.Reward, ticketType = ticketType }
+	elseif not playerData.TutorialDone.Value then
 		-- El primer ticket de cada jugador siempre tiene premio.
-		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.reward), ticketType = ticketType }
-	elseif roll <= outcome.lose then
+		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.Reward), ticketType = ticketType }
+	elseif roll <= outcome.Lose then
 		scratch = { kind = "lose", reward = 0, ticketType = ticketType }
-	elseif roll <= outcome.win then
-		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.reward), ticketType = ticketType }
+	elseif roll <= outcome.Win then
+		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.Reward), ticketType = ticketType }
 	else
-		scratch = { kind = "jackpot", reward = PetService.applyBonus(playerData, outcome.jackpot), text = outcome.jackpotText, ticketType = ticketType }
+		scratch = { kind = "jackpot", reward = PetService.applyBonus(playerData, outcome.Jackpot), text = outcome.JackpotText, ticketType = ticketType, gift = outcome.JackpotGift }
 	end
 
 	pending[player] = scratch

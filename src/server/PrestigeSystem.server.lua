@@ -1,5 +1,7 @@
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
+local TicketData = require(replicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData"))
+
 local prestigeEvent = replicatedStorage:WaitForChild("PrestigeEvent")
 
 prestigeEvent.OnServerEvent:Connect(function(player)
@@ -16,9 +18,9 @@ prestigeEvent.OnServerEvent:Connect(function(player)
 
         playerData.Money.Value = 100
 
-        playerData.BasicTickets.Value = 0
-        playerData.SilverTickets.Value = 0
-        playerData.GoldTickets.Value = 0
+        for _, ticketType in TicketData.Order do
+            playerData[ticketType .. "Tickets"].Value = 0
+        end
 
         playerData.Luck.Value += 1
 

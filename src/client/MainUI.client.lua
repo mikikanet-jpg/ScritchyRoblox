@@ -54,9 +54,13 @@ local Theme = {
 }
 
 local Tiers = {
-	{ id = "Basic", name = "Básico", letter = "B", plural = "Tickets Básicos", odds = "35% nada · 55% $30 · 10% $100", color = Color3.fromRGB(79, 173, 255), dark = Color3.fromRGB(37, 99, 235), unlock = TicketData.Basic.UnlockLevel },
-	{ id = "Silver", name = "Plata", letter = "P", plural = "Tickets Plata", odds = "25% nada · 60% $500 · 15% $1.500", color = Color3.fromRGB(203, 213, 225), dark = Color3.fromRGB(100, 116, 139), unlock = TicketData.Silver.UnlockLevel },
-	{ id = "Gold", name = "Oro", letter = "O", plural = "Tickets Oro", odds = "15% nada · 60% $25.000 · 25% $50.000", color = Color3.fromRGB(252, 211, 77), dark = Color3.fromRGB(217, 119, 6), unlock = TicketData.Gold.UnlockLevel },
+	{ id = "Basic", name = "Básico", letter = "B", plural = "Tickets Básicos", emoji = "🎟️", main = true, color = Color3.fromRGB(79, 173, 255), dark = Color3.fromRGB(37, 99, 235) },
+	{ id = "Silver", name = "Plata", letter = "P", plural = "Tickets Plata", emoji = "🎟️", main = true, color = Color3.fromRGB(203, 213, 225), dark = Color3.fromRGB(100, 116, 139) },
+	{ id = "Gold", name = "Oro", letter = "O", plural = "Tickets Oro", emoji = "🎟️", main = true, color = Color3.fromRGB(252, 211, 77), dark = Color3.fromRGB(217, 119, 6) },
+	{ id = "Pizza", name = "Pizza", emoji = "🍕", color = Color3.fromRGB(251, 146, 60), dark = Color3.fromRGB(194, 65, 12) },
+	{ id = "Space", name = "Espacio", emoji = "🚀", color = Color3.fromRGB(129, 140, 248), dark = Color3.fromRGB(49, 46, 129) },
+	{ id = "Zombie", name = "Zombi", emoji = "🧟", color = Color3.fromRGB(132, 204, 22), dark = Color3.fromRGB(54, 83, 20) },
+	{ id = "Final", name = "Final", emoji = "🏆", color = Color3.fromRGB(250, 204, 21), dark = Color3.fromRGB(113, 63, 18) },
 }
 
 local FONT = Enum.Font.GothamMedium
@@ -155,10 +159,24 @@ local stats = {
 	Prestige = stat("Prestige"),
 	Auto = stat("AutoScratch"),
 	Speed = stat("AutoScratchSpeed"),
-	Basic = stat("BasicTickets"),
-	Silver = stat("SilverTickets"),
-	Gold = stat("GoldTickets"),
+	GameWon = stat("GameWon"),
 }
+for _, tier in Tiers do
+	stats[tier.id] = stat(tier.id .. "Tickets")
+end
+
+local function tierUnlocked(tier: any): boolean
+	local info = TicketData[tier.id]
+	return stats.Level.Value >= info.UnlockLevel and stats.Prestige.Value >= (info.UnlockPrestige or 0)
+end
+
+local function tierRequirement(tier: any): string
+	local info = TicketData[tier.id]
+	if stats.Prestige.Value < (info.UnlockPrestige or 0) then
+		return "Prestigio " .. info.UnlockPrestige
+	end
+	return "Nivel " .. info.UnlockLevel
+end
 
 ---------------------------------------------------------------------
 -- Botones
@@ -548,7 +566,7 @@ end
 -- Barra superior
 ---------------------------------------------------------------------
 
-local HUD_WIDTH = 660
+local HUD_WIDTH = 720
 local hudScale = make("UIScale", { Scale = 1 })
 
 local hud = make("Frame", {
@@ -660,6 +678,9 @@ end
 
 local hudTicketLabels: { [string]: TextLabel } = {}
 for index, tier in Tiers do
+	if not tier.main then
+		continue
+	end
 	local chip = make("Frame", {
 		Position = UDim2.fromOffset(346 + (index - 1) * 58, 14),
 		Size = UDim2.fromOffset(54, 32),
@@ -676,6 +697,30 @@ for index, tier in Tiers do
 		Parent = chip,
 	})
 end
+
+-- Los tickets temáticos y el final comparten un contador.
+local specialChip = make("Frame", {
+	Position = UDim2.fromOffset(346 + 3 * 58, 14),
+	Size = UDim2.fromOffset(54, 32),
+	BackgroundColor3 = Theme.Surface,
+	Parent = hud,
+}, { corner(9) })
+label({
+	Position = UDim2.fromOffset(4, 0),
+	Size = UDim2.fromOffset(24, 32),
+	Text = "🍕",
+	TextSize = 15,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	Parent = specialChip,
+})
+addTooltip(specialChip, "Tickets especiales: Pizza, Espacio, Zombi y Final")
+local hudSpecialLabel = label({
+	Position = UDim2.fromOffset(28, 0),
+	Size = UDim2.new(1, -30, 1, 0),
+	Font = FONT_BOLD,
+	TextSize = 13,
+	Parent = specialChip,
+})
 
 local upgradesButton = button({
 	AnchorPoint = Vector2.new(1, 0.5),
@@ -719,14 +764,16 @@ Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
 -- Tienda
 ---------------------------------------------------------------------
 
-local shopBody = createPanel("Shop", "Tienda de tickets", "Compra tickets y llévalos a la mesa para rascarlos", 364)
+local shopBody = createPanel("Shop", "Tienda de tickets", "Compra tickets y llévalos a la mesa para rascarlos", 620)
 local shopRows: { [string]: Row } = {}
 
 for index, tier in Tiers do
 	local info = TicketData[tier.id]
-	shopRows[tier.id] = createRow(shopBody, index, "🎟️", tier.color, tier.dark, function()
-		if stats.Level.Value < tier.unlock then
-			showToast("Necesitas nivel " .. tier.unlock)
+	shopRows[tier.id] = createRow(shopBody, index, tier.emoji, tier.color, tier.dark, function()
+		if info.IsFinal and (stats.GameWon.Value or stats.Final.Value > 0) then
+			return
+		elseif not tierUnlocked(tier) then
+			showToast("Necesitas " .. tierRequirement(tier))
 		elseif stats.Money.Value < info.Price then
 			showToast("Te faltan " .. money(info.Price - stats.Money.Value))
 		else
@@ -739,7 +786,7 @@ end
 -- Mesa de rascar
 ---------------------------------------------------------------------
 
-local scratchBody = createPanel("Scratch", "Mesa de rascar", "Elige qué ticket quieres rascar", 436)
+local scratchBody = createPanel("Scratch", "Mesa de rascar", "Elige qué ticket quieres rascar", 620)
 
 local resultCard = make("Frame", {
 	Size = UDim2.new(1, 0, 0, 62),
@@ -763,7 +810,7 @@ local resultLabel = label({
 local scratchRows: { [string]: Row } = {}
 
 for index, tier in Tiers do
-	scratchRows[tier.id] = createRow(scratchBody, index, "🎟️", tier.color, tier.dark, function()
+	scratchRows[tier.id] = createRow(scratchBody, index, tier.emoji, tier.color, tier.dark, function()
 		if stats[tier.id].Value <= 0 then
 			showToast("No tienes tickets " .. tier.name)
 		elseif not scratchRequested then
@@ -882,7 +929,16 @@ end
 
 local ticketLines = {}
 for _, tier in Tiers do
-	table.insert(ticketLines, tier.name .. " (" .. money(TicketData[tier.id].Price) .. "): " .. tier.odds)
+	local info = TicketData[tier.id]
+	if not info.IsFinal then
+		local line = tier.name .. " (" .. money(info.Price) .. ", nivel " .. info.UnlockLevel .. "): "
+			.. info.Lose .. "% nada · " .. (info.Win - info.Lose) .. "% " .. money(info.Reward)
+			.. " · " .. (100 - info.Win) .. "% " .. money(info.Jackpot)
+		if info.JackpotGift then
+			line ..= ". El jackpot regala " .. info.JackpotGift.text
+		end
+		table.insert(ticketLines, line)
+	end
 end
 table.insert(ticketLines, "Compra en el ordenador del dormitorio y rasca en la mesa del salón arrastrando el ratón o el dedo.")
 
@@ -901,8 +957,15 @@ helpCard(4, "🤖 Auto Scratch", {
 helpCard(5, "⚡ Velocidad", {
 	"Cada mejora quita 0,5 s de espera, desde 5 s hasta un mínimo de 0,5 s.",
 })
+local dropTexts = {}
+for _, tier in Tiers do
+	local chance = PetData.DropChance[tier.id]
+	if chance then
+		table.insert(dropTexts, math.round(chance * 100) .. "% con " .. tier.name)
+	end
+end
 local petLines = {
-	"Al rascar a mano puede salir una mascota: 5% con Básico, 10% con Plata y 15% con Oro. Si ya la tienes, no pasa nada.",
+	"Al rascar a mano puede salir una mascota: " .. table.concat(dropTexts, ", ") .. ". Si ya la tienes, no pasa nada.",
 	"Equipa una en el botón del perrito: te sigue y sube los premios de los tickets, también con Auto Scratch. El prestigio no te la quita.",
 }
 for _, rarityName in { "Common", "Rare", "Epic", "Legendary" } do
@@ -924,6 +987,11 @@ for level, info in RoomData.TableLevels do
 end
 table.insert(roomLines, "El bonus de la mesa se suma al de la mascota.")
 helpCard(8, "🏠 Habitación", roomLines)
+local finalInfo = TicketData.Final
+helpCard(9, "🏆 Tiquet Final", {
+	"Es el objetivo del juego. Cuesta " .. money(finalInfo.Price) .. " y pide nivel " .. finalInfo.UnlockLevel .. " y al menos " .. finalInfo.UnlockPrestige .. " prestigio.",
+	"Siempre se gana y solo se completa una vez: recibes " .. money(finalInfo.Reward) .. ", el Fénix dorado y un 🏆 junto a tu nivel. Auto Scratch no lo rasca.",
+})
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
@@ -1301,7 +1369,7 @@ finishScratchCard = function()
 	prizeScale.Scale = 0.6
 	tween(prizeScale, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
 
-	if activeKind == "jackpot" then
+	if activeKind == "jackpot" or activeKind == "final" then
 		playSound("Jackpot")
 		tween(cardStroke, 0.2, { Color = Theme.Amber })
 		confetti(70)
@@ -1337,7 +1405,7 @@ local function openCard(ticketType: string, kind: string, reward: number)
 	lastPoint = nil
 	cellsLeft = #foilCells
 
-	cardTitle.Text = "Ticket " .. tier.name
+	cardTitle.Text = tier.emoji .. " Ticket " .. tier.name
 	cardTitle.TextColor3 = tier.color
 	cardStroke.Color = tier.color
 	card.Position = cardCenter
@@ -1349,7 +1417,12 @@ local function openCard(ticketType: string, kind: string, reward: number)
 	end
 	foilHint.Visible = true
 
-	if kind == "jackpot" then
+	if kind == "final" then
+		prizeLabel.Text = "¡HAS GANADO!"
+		prizeLabel.TextColor3 = Theme.Amber
+		prizeSubLabel.Text = "+" .. money(reward) .. " y el Fénix dorado"
+		prizeSubLabel.TextColor3 = Theme.Amber
+	elseif kind == "jackpot" then
 		prizeLabel.Text = "¡JACKPOT!"
 		prizeLabel.TextColor3 = Theme.Amber
 		prizeSubLabel.Text = "+" .. money(reward)
@@ -1538,10 +1611,14 @@ local announceLabel = label({
 })
 local announceId = 0
 
-remotes.JackpotAnnounced.OnClientEvent:Connect(function(name: string, ticket: string, amount: number)
+remotes.JackpotAnnounced.OnClientEvent:Connect(function(name: string, ticket: string, amount: number, isFinal: boolean?)
 	announceId += 1
 	local id = announceId
-	announceLabel.Text = "🎉 " .. name .. " ha sacado JACKPOT " .. ticket .. ": " .. money(amount)
+	if isFinal then
+		announceLabel.Text = "🏆 ¡" .. name .. " ha completado el juego!"
+	else
+		announceLabel.Text = "🎉 " .. name .. " ha sacado JACKPOT " .. ticket .. ": " .. money(amount)
+	end
 	announceBanner.Visible = true
 	announceScale.Scale = 0.8
 	tween(announceScale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -1709,9 +1786,11 @@ local function refreshTickets()
 	for _, tier in Tiers do
 		local owned = stats[tier.id].Value
 		local info = TicketData[tier.id]
-		local unlocked = stats.Level.Value >= tier.unlock
+		local unlocked = tierUnlocked(tier)
 
-		hudTicketLabels[tier.id].Text = owned > 999 and "999+" or tostring(owned)
+		if tier.main then
+			hudTicketLabels[tier.id].Text = owned > 999 and "999+" or tostring(owned)
+		end
 
 		local shopRow = shopRows[tier.id]
 		shopRow.title.Text = "Ticket " .. tier.name
@@ -1719,8 +1798,13 @@ local function refreshTickets()
 			shopRow.detail.Text = "Tienes " .. formatNumber(owned)
 			setButton(shopRow, money(info.Price), stats.Money.Value >= info.Price)
 		else
-			shopRow.detail.Text = "Se desbloquea en el nivel " .. tier.unlock
-			setButton(shopRow, "Nivel " .. tier.unlock, false)
+			shopRow.detail.Text = "Se desbloquea con " .. string.lower(tierRequirement(tier))
+			setButton(shopRow, tierRequirement(tier), false)
+		end
+
+		if info.IsFinal and (stats.GameWon.Value or owned > 0) then
+			shopRow.detail.Text = stats.GameWon.Value and "¡Juego completado!" or "Ráscalo en la mesa del salón"
+			setButton(shopRow, stats.GameWon.Value and "Completado" or "Comprado", false)
 		end
 
 		local scratchRow = scratchRows[tier.id]
@@ -1728,6 +1812,16 @@ local function refreshTickets()
 		scratchRow.detail.Text = owned == 1 and "Te queda 1" or ("Te quedan " .. formatNumber(owned))
 		setButton(scratchRow, "Rascar", owned > 0)
 	end
+end
+
+local function refreshSpecialCount()
+	local total = 0
+	for _, tier in Tiers do
+		if not tier.main then
+			total += stats[tier.id].Value
+		end
+	end
+	hudSpecialLabel.Text = total > 999 and "999+" or tostring(total)
 end
 
 local function refreshUpgrades()
@@ -1774,7 +1868,7 @@ end
 
 local function refreshLevel()
 	local required = stats.Level.Value * 10
-	levelLabel.Text = "Nivel " .. stats.Level.Value .. (stats.Prestige.Value > 0 and ("  👑" .. stats.Prestige.Value) or "")
+	levelLabel.Text = "Nivel " .. stats.Level.Value .. (stats.Prestige.Value > 0 and ("  👑" .. stats.Prestige.Value) or "") .. (stats.GameWon.Value and " 🏆" or "")
 	xpLabel.Text = stats.XP.Value .. "/" .. required
 	tween(xpFill, 0.3, { Size = UDim2.fromScale(math.clamp(stats.XP.Value / required, 0, 1), 1) })
 end
@@ -1794,6 +1888,7 @@ end)
 
 for _, tier in Tiers do
 	stats[tier.id].Changed:Connect(refreshTickets)
+	stats[tier.id].Changed:Connect(refreshSpecialCount)
 end
 stats.Level.Changed:Connect(function()
 	refreshLevel()
@@ -1809,7 +1904,14 @@ stats.Luck.Changed:Connect(refreshUpgrades)
 stats.Auto.Changed:Connect(refreshUpgrades)
 stats.Speed.Changed:Connect(refreshUpgrades)
 
+stats.GameWon.Changed:Connect(function()
+	refreshLevel()
+	refreshTickets()
+end)
+stats.Prestige.Changed:Connect(refreshTickets)
+
 refreshTickets()
+refreshSpecialCount()
 refreshUpgrades()
 refreshPrestige()
 refreshLevel()

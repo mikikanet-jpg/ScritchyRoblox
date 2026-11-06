@@ -1,7 +1,7 @@
 local PetData = {}
 
 -- Probabilidad de que salga una mascota al rascar a mano cada ticket.
-PetData.DropChance = { Basic = 0.05, Silver = 0.1, Gold = 0.15 }
+PetData.DropChance = { Basic = 0.05, Silver = 0.1, Gold = 0.15, Pizza = 0.2, Space = 0.25, Zombie = 0.3 }
 
 -- El peso reparte las mascotas que salen entre las rarezas (suma 100).
 PetData.Rarities = {

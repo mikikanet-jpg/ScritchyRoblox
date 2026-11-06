@@ -2,18 +2,21 @@ local Players = game:GetService("Players")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
 local PetService = require(script.Parent:WaitForChild("PetService"))
+local TicketData = require(replicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData"))
 
 local buyAutoScratch = replicatedStorage:WaitForChild("BuyAutoScratch")
 local showMessage = replicatedStorage:WaitForChild("ShowMessage")
 
 local PRICE = 3000
 
--- Del mejor ticket al peor.
-local AUTO_ORDER = {
-	{ stat = "GoldTickets", label = "GOLD", min = 5000, max = 30000 },
-	{ stat = "SilverTickets", label = "SILVER", min = 500, max = 2500 },
-	{ stat = "BasicTickets", label = "BASIC", min = 15, max = 30 },
-}
+-- Del mejor ticket al peor. El tiquet final solo se rasca a mano.
+local AUTO_ORDER = {}
+for _, ticketType in TicketData.Order do
+	local info = TicketData[ticketType]
+	if info.AutoMin then
+		table.insert(AUTO_ORDER, 1, { stat = ticketType .. "Tickets", label = string.upper(ticketType), min = info.AutoMin, max = info.AutoMax })
+	end
+end
 
 buyAutoScratch.OnServerEvent:Connect(function(player)
 	local playerData = player:FindFirstChild("PlayerData")
