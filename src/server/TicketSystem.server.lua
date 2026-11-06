@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local interactPart = workspace:WaitForChild("TicketTable_Interact")
@@ -21,6 +22,7 @@ end
 -- El servidor decide el premio al empezar y lo paga al terminar de rascar.
 local scratchStarted = getRemote("ScratchStarted")
 local scratchReveal = getRemote("ScratchReveal")
+local jackpotAnnounced = getRemote("JackpotAnnounced")
 
 local AUTO_REVEAL_SECONDS = 120
 
@@ -31,7 +33,29 @@ local OUTCOMES = {
 	Gold = { lose = 15, win = 75, reward = 25000, jackpot = 50000, jackpotText = "JACKPOT ORO! +" },
 }
 
+local TICKET_NAMES = { Basic = "BÁSICO", Silver = "PLATA", Gold = "ORO" }
+
 local pending = {}
+
+-- Efecto dorado alrededor del jugador, visible para todos.
+local function celebrateJackpot(player)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return
+	end
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Color = ColorSequence.new(Color3.fromRGB(252, 211, 77))
+	emitter.LightEmission = 0.6
+	emitter.Size = NumberSequence.new(0.5, 0)
+	emitter.Lifetime = NumberRange.new(1, 1.6)
+	emitter.Speed = NumberRange.new(6, 12)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Rate = 0
+	emitter.Parent = root
+	emitter:Emit(120)
+	Debris:AddItem(emitter, 3)
+end
 
 prompt.Triggered:Connect(function(player)
 	openScratch:FireClient(player)
@@ -47,6 +71,8 @@ local function finishScratch(player, scratch)
 	if not playerData then
 		return
 	end
+
+	playerData.TutorialDone.Value = true
 
 	local ticketXP = playerData.TicketXP
 	local ticketLevel = playerData.TicketLevel
@@ -69,6 +95,8 @@ local function finishScratch(player, scratch)
 		playerData.Money.Value += scratch.reward
 		playerData.Jackpots.Value += 1
 		showMessage:FireClient(player, scratch.text .. scratch.reward .. "$")
+		celebrateJackpot(player)
+		jackpotAnnounced:FireAllClients(player.DisplayName, TICKET_NAMES[scratch.ticketType], scratch.reward)
 	end
 end
 
@@ -93,12 +121,15 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	local roll = math.random(1, 100)
 	local scratch
-	if roll <= outcome.lose then
+	if not playerData.TutorialDone.Value then
+		-- El primer ticket de cada jugador siempre tiene premio.
+		scratch = { kind = "win", reward = outcome.reward }
+	elseif roll <= outcome.lose then
 		scratch = { kind = "lose", reward = 0 }
 	elseif roll <= outcome.win then
 		scratch = { kind = "win", reward = outcome.reward }
 	else
-		scratch = { kind = "jackpot", reward = outcome.jackpot, text = outcome.jackpotText }
+		scratch = { kind = "jackpot", reward = outcome.jackpot, text = outcome.jackpotText, ticketType = ticketType }
 	end
 
 	pending[player] = scratch

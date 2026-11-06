@@ -27,6 +27,7 @@ local remotes = {
 	PrestigeEvent = ReplicatedStorage:WaitForChild("PrestigeEvent") :: RemoteEvent,
 	ScratchStarted = ReplicatedStorage:WaitForChild("ScratchStarted") :: RemoteEvent,
 	ScratchReveal = ReplicatedStorage:WaitForChild("ScratchReveal") :: RemoteEvent,
+	JackpotAnnounced = ReplicatedStorage:WaitForChild("JackpotAnnounced") :: RemoteEvent,
 }
 
 -- Estos valores repiten los del servidor. Si cambian allí, hay que cambiarlos también aquí.
@@ -923,8 +924,12 @@ stroke(Theme.Stroke, 0.2).Parent = infoButton
 -- Ticket para rascar
 ---------------------------------------------------------------------
 
--- Pega aquí los ID de sonido, por ejemplo "rbxassetid://123456".
-local SOUND_IDS = { Scratch = "", Lose = "", Win = "", Jackpot = "" }
+local SOUND_IDS = {
+	Scratch = "rbxassetid://9118768772",
+	Lose = "rbxassetid://1846251194",
+	Win = "rbxassetid://9117246569",
+	Jackpot = "rbxassetid://1846251212",
+}
 
 local CARD_W, CARD_H = 440, 332
 local ZONE_W, ZONE_H = 400, 190
@@ -1053,11 +1058,10 @@ local lastPoint: Vector2? = nil
 local lastScratchSound = 0
 local finishScratchCard: () -> ()
 
+local scratchLoop = make("Sound", { SoundId = SOUND_IDS.Scratch, Looped = true, Volume = 0.5, Parent = cardGui })
+
 local function playSound(name: string)
 	local id = (SOUND_IDS :: any)[name]
-	if id == "" then
-		return
-	end
 	local sound = make("Sound", { SoundId = id, Parent = cardGui })
 	sound.Ended:Once(function()
 		sound:Destroy()
@@ -1123,9 +1127,18 @@ local function scratchTo(point: Vector2)
 	end
 	lastPoint = current
 
-	if distance > 2 and os.clock() - lastScratchSound > 0.12 then
+	if distance > 2 then
 		lastScratchSound = os.clock()
-		playSound("Scratch")
+		if not scratchLoop.IsPlaying then
+			scratchLoop:Play()
+			-- Se calla poco después de dejar de mover el ratón o el dedo.
+			task.spawn(function()
+				while os.clock() - lastScratchSound < 0.15 and not revealed do
+					task.wait(0.05)
+				end
+				scratchLoop:Stop()
+			end)
+		end
 	end
 	if cellsLeft <= #foilCells * (1 - REVEAL_AT) then
 		finishScratchCard()
@@ -1348,6 +1361,170 @@ end
 remotes.ScratchStarted.OnClientEvent:Connect(function(ticketType: string, kind: string, reward: number)
 	scratchRequested = false
 	openCard(ticketType, kind, reward)
+end)
+
+---------------------------------------------------------------------
+-- Inicio guiado y anuncios
+---------------------------------------------------------------------
+
+local guideBanner = make("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 76),
+	Size = UDim2.new(0.9, 0, 0, 44),
+	BackgroundColor3 = Theme.Accent,
+	Visible = false,
+	Parent = hudGui,
+}, {
+	make("UISizeConstraint", { MaxSize = Vector2.new(460, 44) }),
+	corner(12),
+})
+local guideLabel = label({
+	Size = UDim2.fromScale(1, 1),
+	Font = FONT_BOLD,
+	TextSize = 15,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	Parent = guideBanner,
+})
+
+local guideBeam: Beam? = nil
+local guideMarker: BillboardGui? = nil
+local guideStart: Attachment? = nil
+local guideEnd: Attachment? = nil
+
+local function clearGuide()
+	for _, item: any in { guideBeam, guideMarker, guideStart, guideEnd } do
+		item:Destroy()
+	end
+	guideBeam, guideMarker, guideStart, guideEnd = nil, nil, nil, nil
+end
+
+local function pointGuideAt(target: BasePart)
+	clearGuide()
+
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+
+	local marker = make("BillboardGui", {
+		Size = UDim2.fromOffset(60, 60),
+		StudsOffset = Vector3.new(0, 3, 0),
+		AlwaysOnTop = true,
+		Adornee = target,
+		ResetOnSpawn = false,
+		Parent = playerGui,
+	})
+	local arrow = label({
+		Size = UDim2.fromScale(1, 1),
+		Text = "⬇️",
+		TextSize = 44,
+		TextTruncate = Enum.TextTruncate.None,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = marker,
+	})
+	TweenService:Create(
+		arrow,
+		TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+		{ Position = UDim2.fromOffset(0, -12) }
+	):Play()
+	guideMarker = marker
+
+	if root then
+		local startAttachment = make("Attachment", { Parent = root })
+		local endAttachment = make("Attachment", { Parent = target })
+		guideBeam = make("Beam", {
+			Attachment0 = startAttachment,
+			Attachment1 = endAttachment,
+			Color = ColorSequence.new(Theme.Amber),
+			Transparency = NumberSequence.new(0.15),
+			LightEmission = 0.8,
+			FaceCamera = true,
+			Width0 = 1.2,
+			Width1 = 1.2,
+			Parent = root,
+		})
+		guideStart, guideEnd = startAttachment, endAttachment
+	end
+end
+
+local tutorialDone = stat("TutorialDone")
+local pcTarget = Workspace:WaitForChild("PC_Interact") :: BasePart
+local tableTarget = Workspace:WaitForChild("TicketTable_Interact") :: BasePart
+
+local function refreshGuide()
+	if tutorialDone.Value then
+		guideBanner.Visible = false
+		clearGuide()
+		return
+	end
+	guideBanner.Visible = true
+	if stats.Basic.Value > 0 then
+		guideLabel.Text = "Paso 2 de 2: ve a la mesa y rasca tu ticket"
+		pointGuideAt(tableTarget)
+	else
+		guideLabel.Text = "Paso 1 de 2: compra un ticket en el ordenador"
+		pointGuideAt(pcTarget)
+	end
+end
+
+tutorialDone.Changed:Connect(function(done: boolean)
+	refreshGuide()
+	if done then
+		showToast("¡Ya sabes jugar!")
+	end
+end)
+stats.Basic.Changed:Connect(function()
+	if not tutorialDone.Value then
+		refreshGuide()
+	end
+end)
+local function guideCharacter(character: Model)
+	character:WaitForChild("HumanoidRootPart", 10)
+	if not tutorialDone.Value then
+		refreshGuide()
+	end
+end
+player.CharacterAdded:Connect(guideCharacter)
+refreshGuide()
+if player.Character then
+	task.spawn(guideCharacter, player.Character)
+end
+
+local announceScale = make("UIScale", { Scale = 0.8 })
+local announceBanner = make("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 126),
+	Size = UDim2.new(0.9, 0, 0, 50),
+	BackgroundColor3 = Theme.Bg,
+	Visible = false,
+	Parent = toastGui,
+}, {
+	make("UISizeConstraint", { MaxSize = Vector2.new(520, 50) }),
+	corner(14),
+	stroke(Theme.Amber),
+	announceScale,
+})
+local announceLabel = label({
+	Size = UDim2.new(1, -20, 1, 0),
+	Position = UDim2.fromOffset(10, 0),
+	Font = FONT_BLACK,
+	TextSize = 17,
+	TextColor3 = Theme.Amber,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	Parent = announceBanner,
+})
+local announceId = 0
+
+remotes.JackpotAnnounced.OnClientEvent:Connect(function(name: string, ticket: string, amount: number)
+	announceId += 1
+	local id = announceId
+	announceLabel.Text = "🎉 " .. name .. " ha sacado JACKPOT " .. ticket .. ": " .. money(amount)
+	announceBanner.Visible = true
+	announceScale.Scale = 0.8
+	tween(announceScale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+	task.delay(5, function()
+		if id == announceId then
+			announceBanner.Visible = false
+		end
+	end)
 end)
 
 ---------------------------------------------------------------------

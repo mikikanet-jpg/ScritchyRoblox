@@ -19,6 +19,7 @@ local STATS = {
 	{ name = "Prestige", class = "IntValue", default = 0 },
 	{ name = "AutoScratch", class = "BoolValue", default = false },
 	{ name = "AutoScratchSpeed", class = "NumberValue", default = 5 },
+	{ name = "TutorialDone", class = "BoolValue", default = false },
 }
 
 local store
