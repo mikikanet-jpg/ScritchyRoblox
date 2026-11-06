@@ -3,6 +3,9 @@ local RoomData = {}
 -- Zona nueva de la habitación, al este de la sala original.
 RoomData.Annex = { x0 = -97.4, x1 = -61.4, z0 = 142.48, z1 = 177.65, floor = 72.556, top = 83.43 }
 
+-- La mesa de rascar queda en el centro del salón.
+RoomData.TableTopCenter = Vector3.new(-79.4, 75.86, 160.06)
+
 -- bonus: premio extra de los tickets con este nivel de mesa.
 RoomData.TableLevels = {
 	{ name = "Tapete azul", price = 2000, bonus = 0.05, color = Color3.fromRGB(59, 130, 246) },

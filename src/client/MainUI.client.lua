@@ -884,7 +884,7 @@ local ticketLines = {}
 for _, tier in Tiers do
 	table.insert(ticketLines, tier.name .. " (" .. money(TicketData[tier.id].Price) .. "): " .. tier.odds)
 end
-table.insert(ticketLines, "Compra en el ordenador y rasca en la mesa arrastrando el ratón o el dedo.")
+table.insert(ticketLines, "Compra en el ordenador del dormitorio y rasca en la mesa del salón arrastrando el ratón o el dedo.")
 
 helpCard(1, "🎟️ Tickets", ticketLines)
 helpCard(2, "⭐ Nivel y XP", {
@@ -1482,10 +1482,10 @@ local function refreshGuide()
 	end
 	guideBanner.Visible = true
 	if stats.Basic.Value > 0 then
-		guideLabel.Text = "Paso 2 de 2: ve a la mesa y rasca tu ticket"
+		guideLabel.Text = "Paso 2 de 2: ve a la mesa del salón y rasca tu ticket"
 		pointGuideAt(tableTarget)
 	else
-		guideLabel.Text = "Paso 1 de 2: compra un ticket en el ordenador"
+		guideLabel.Text = "Paso 1 de 2: compra un ticket en el ordenador del dormitorio"
 		pointGuideAt(pcTarget)
 	end
 end

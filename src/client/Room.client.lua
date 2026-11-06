@@ -63,7 +63,7 @@ function builders.posters(parent)
 	}
 	for index, design in designs do
 		local x = annex.x0 + 5 + (index - 1) * 8.5
-		local poster = block(parent, Vector3.new(6, 7.5, 0.1), Vector3.new(x, floorY + 5.8, annex.z1 - 0.7), design.color)
+		local poster = block(parent, Vector3.new(5.2, 6.5, 0.1), Vector3.new(x, floorY + 6.6, annex.z1 - 0.7), design.color)
 		poster.CanCollide = false
 
 		local gui = Instance.new("SurfaceGui")
@@ -92,7 +92,7 @@ end
 
 function builders.sofa(parent)
 	local color = Color3.fromRGB(67, 56, 120)
-	local x, z = centerX, annex.z1 - 11
+	local x, z = centerX, annex.z1 - 3.2
 	block(parent, Vector3.new(14, 1.6, 4), Vector3.new(x, floorY + 0.8, z), color, Enum.Material.Fabric)
 	block(parent, Vector3.new(14, 3.6, 1), Vector3.new(x, floorY + 2.4, z + 1.9), color, Enum.Material.Fabric)
 	for _, side in { -1, 1 } do
@@ -172,7 +172,7 @@ local function refreshTable()
 		mat = nil
 	end
 	if info then
-		mat = block(folder, Vector3.new(4.8, 0.06, 8.6), Vector3.new(-101.03, 75.86, 155.65), info.color, Enum.Material.Fabric)
+		mat = block(folder, Vector3.new(4.8, 0.06, 8.6), RoomData.TableTopCenter, info.color, Enum.Material.Fabric)
 		mat.CanCollide = false
 	end
 end

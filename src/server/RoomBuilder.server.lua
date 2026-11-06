@@ -1,4 +1,5 @@
--- Amplía la habitación al arrancar: quita la pared este y construye la zona nueva.
+-- Convierte la habitación en una casa al arrancar: la sala original queda como dormitorio
+-- con baño, y al otro lado de una puerta se construye el salón con la mesa de rascar.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData"))
@@ -94,10 +95,47 @@ if lightTemplate then
 	end
 end
 
-eastLower:Destroy()
-eastUpper:Destroy()
+-- Puerta entre el dormitorio y el salón. El resto de la pared sigue cerrando el baño.
+local DOOR_Z0, DOOR_Z1 = 151, 157
+local DOOR_TOP = 80.2
+local wallX, wallY, wallZ = eastLower.Position.X, eastLower.Position.Y, eastLower.Position.Z
+local wallStart = wallZ - eastLower.Size.X / 2
+local wallEnd = wallZ + eastLower.Size.X / 2
+local wallThick = eastLower.Size.Z
+local wallHeight = eastLower.Size.Y
+local wallTop = wallY + wallHeight / 2
 
--- Se aparece en el centro de la zona nueva, no en el baño.
+copy(eastLower, Vector3.new(DOOR_Z0 - wallStart, wallHeight, wallThick), Vector3.new(wallX, wallY, (wallStart + DOOR_Z0) / 2))
+copy(eastLower, Vector3.new(wallEnd - DOOR_Z1, wallHeight, wallThick), Vector3.new(wallX, wallY, (wallEnd + DOOR_Z1) / 2))
+copy(eastLower, Vector3.new(DOOR_Z1 - DOOR_Z0, wallTop - DOOR_TOP, wallThick), Vector3.new(wallX, (wallTop + DOOR_TOP) / 2, (DOOR_Z0 + DOOR_Z1) / 2))
+eastLower:Destroy()
+
+local function frame(size, position)
+	local part = Instance.new("Part")
+	part.Name = "DoorFrame"
+	part.Anchored = true
+	part.Size = size
+	part.CFrame = CFrame.new(position)
+	part.Material = Enum.Material.Wood
+	part.Color = Color3.fromRGB(92, 60, 38)
+	part.Parent = folder
+end
+local doorMidY = (annex.floor + DOOR_TOP) / 2
+local doorHeight = DOOR_TOP - annex.floor
+frame(Vector3.new(0.9, doorHeight, 0.3), Vector3.new(wallX, doorMidY, DOOR_Z0 + 0.15))
+frame(Vector3.new(0.9, doorHeight, 0.3), Vector3.new(wallX, doorMidY, DOOR_Z1 - 0.15))
+frame(Vector3.new(0.9, 0.3, DOOR_Z1 - DOOR_Z0), Vector3.new(wallX, DOOR_TOP - 0.15, (DOOR_Z0 + DOOR_Z1) / 2))
+
+-- La mesa de rascar y su silla pasan al centro del salón.
+local tableTop = workspace:WaitForChild("table")
+local chair = workspace:WaitForChild("Chair")
+local tableInteract = workspace:WaitForChild("TicketTable_Interact")
+local tableOffset = Vector3.new(RoomData.TableTopCenter.X + 101.0282, 0, RoomData.TableTopCenter.Z - 155.6514)
+tableTop:PivotTo(tableTop:GetPivot() + tableOffset)
+chair:PivotTo(chair:GetPivot() + tableOffset)
+tableInteract.CFrame = tableInteract.CFrame + tableOffset
+
+-- Se aparece en el salón, no en el baño.
 local spawnLocation = workspace:FindFirstChildOfClass("SpawnLocation")
 if spawnLocation then
 	for _, child in spawnLocation:GetChildren() do
@@ -107,5 +145,5 @@ if spawnLocation then
 	end
 	spawnLocation.Transparency = 1
 	spawnLocation.CanCollide = false
-	spawnLocation.CFrame = CFrame.new(centerX - 6, annex.floor + 0.3, centerZ)
+	spawnLocation.CFrame = CFrame.new(annex.x0 + 5, annex.floor + 0.3, annex.z1 - 7)
 end
