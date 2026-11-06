@@ -1,16 +1,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PetData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PetData"))
+local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData"))
 
 local PetService = {}
 
--- Suma el bonus de la mascota equipada a un premio.
+-- Suma a un premio los bonus de la mascota equipada y de la mesa.
 function PetService.applyBonus(playerData, reward)
 	local pet = PetData.get(playerData.EquippedPet.Value)
-	if pet then
-		return math.floor(reward * (1 + pet.bonus))
-	end
-	return reward
+	local bonus = RoomData.tableBonus(playerData.TableLevel.Value) + (pet and pet.bonus or 0)
+	return math.floor(reward * (1 + bonus))
 end
 
 local function pickPet()

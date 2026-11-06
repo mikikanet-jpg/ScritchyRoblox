@@ -22,6 +22,8 @@ local STATS = {
 	{ name = "TutorialDone", class = "BoolValue", default = false },
 	{ name = "OwnedPets", class = "StringValue", default = "" },
 	{ name = "EquippedPet", class = "StringValue", default = "" },
+	{ name = "RoomItems", class = "StringValue", default = "" },
+	{ name = "TableLevel", class = "IntValue", default = 0 },
 }
 
 local store

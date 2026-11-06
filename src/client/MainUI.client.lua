@@ -15,6 +15,7 @@ local data = player:WaitForChild("PlayerData")
 
 local TicketData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData")) :: any
 local PetData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PetData")) :: any
+local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData")) :: any
 
 local remotes = {
 	ShowMessage = ReplicatedStorage:WaitForChild("ShowMessage") :: RemoteEvent,
@@ -915,6 +916,14 @@ for _, rarityName in { "Common", "Rare", "Epic", "Legendary" } do
 	table.insert(petLines, rarity.label .. " (" .. rarity.weight .. "% de las que salen): " .. table.concat(names, ", "))
 end
 helpCard(7, "🐶 Mascotas", petLines)
+local roomLines = {
+	"Abre el botón de la casa para comprar decoración y mejorar la mesa. Todo se queda aunque hagas prestigio. Con otros jugadores, cada uno ve solo su propia decoración.",
+}
+for level, info in RoomData.TableLevels do
+	table.insert(roomLines, "Mesa " .. level .. " (" .. money(info.price) .. "): " .. info.name .. ", +" .. math.round(info.bonus * 100) .. "% de premios")
+end
+table.insert(roomLines, "El bonus de la mesa se suma al de la mascota.")
+helpCard(8, "🏠 Habitación", roomLines)
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
@@ -1616,6 +1625,85 @@ local petsButton = button({
 	openPanel("Pets")
 end)
 stroke(Theme.Stroke, 0.2).Parent = petsButton
+
+---------------------------------------------------------------------
+-- Habitación
+---------------------------------------------------------------------
+
+local roomItems = stat("RoomItems")
+local tableLevel = stat("TableLevel")
+local buyRoomItem = ReplicatedStorage:WaitForChild("BuyRoomItem") :: RemoteEvent
+local upgradeTable = ReplicatedStorage:WaitForChild("UpgradeTable") :: RemoteEvent
+
+local roomBody = createPanel("Room", "Tu habitación", "Decora la sala y mejora la mesa para ganar más", 620)
+
+local tableRow = createRow(roomBody, 0, "🎲", Color3.fromRGB(252, 211, 77), Color3.fromRGB(217, 119, 6), function()
+	local nextLevel = RoomData.TableLevels[tableLevel.Value + 1]
+	if not nextLevel then
+		return
+	elseif stats.Money.Value < nextLevel.price then
+		showToast("Te faltan " .. money(nextLevel.price - stats.Money.Value))
+	else
+		upgradeTable:FireServer()
+	end
+end)
+
+local roomRows: { [string]: Row } = {}
+for index, item in RoomData.Items do
+	roomRows[item.id] = createRow(roomBody, index, item.emoji, Color3.fromRGB(167, 139, 250), Color3.fromRGB(91, 33, 182), function()
+		if RoomData.owns(roomItems.Value, item.id) then
+			return
+		elseif stats.Money.Value < item.price then
+			showToast("Te faltan " .. money(item.price - stats.Money.Value))
+		else
+			buyRoomItem:FireServer(item.id)
+		end
+	end)
+end
+
+local function refreshRoom()
+	local current = RoomData.TableLevels[tableLevel.Value]
+	local nextLevel = RoomData.TableLevels[tableLevel.Value + 1]
+	tableRow.title.Text = "Mesa: " .. (current and current.name or "normal")
+	if nextLevel then
+		tableRow.detail.Text = "Siguiente: +" .. math.round(nextLevel.bonus * 100) .. "% de premios"
+		setButton(tableRow, money(nextLevel.price), stats.Money.Value >= nextLevel.price)
+	else
+		tableRow.detail.Text = "+" .. math.round(current.bonus * 100) .. "% de premios"
+		setButton(tableRow, "Máxima", false)
+	end
+
+	for _, item in RoomData.Items do
+		local row = roomRows[item.id]
+		row.title.Text = item.name
+		row.detail.Text = item.description
+		if RoomData.owns(roomItems.Value, item.id) then
+			setButton(row, "Comprado", false)
+			row.action.TextColor3 = Theme.Green
+		else
+			setButton(row, money(item.price), stats.Money.Value >= item.price)
+		end
+	end
+end
+
+roomItems.Changed:Connect(refreshRoom)
+tableLevel.Changed:Connect(refreshRoom)
+stats.Money.Changed:Connect(refreshRoom)
+refreshRoom()
+
+local roomButton = button({
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UserInputService.TouchEnabled and UDim2.new(0, 16, 0.5, -112) or UDim2.new(0, 16, 1, -128),
+	Size = UDim2.fromOffset(46, 46),
+	Text = "🏠",
+	TextSize = 22,
+	BackgroundColor3 = Theme.Bg,
+	Radius = 23,
+	Parent = hudGui,
+}, function()
+	openPanel("Room")
+end)
+stroke(Theme.Stroke, 0.2).Parent = roomButton
 
 local function refreshTickets()
 	for _, tier in Tiers do
