@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PetService = require(script.Parent:WaitForChild("PetService"))
 local MissionService = require(script.Parent:WaitForChild("MissionService"))
+local TicketRules = require(script.Parent:WaitForChild("TicketRules"))
 local TicketData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData"))
 
 local interactPart = workspace:WaitForChild("TicketTable_Interact")
@@ -29,8 +30,6 @@ local scratchReveal = getRemote("ScratchReveal")
 local jackpotAnnounced = getRemote("JackpotAnnounced")
 
 local AUTO_REVEAL_SECONDS = 120
-
-local TICKET_NAMES = { Basic = "BÁSICO", Silver = "PLATA", Gold = "ORO", Pizza = "PIZZA", Space = "ESPACIO", Zombie = "ZOMBI" }
 
 local pending = {}
 
@@ -84,17 +83,7 @@ local function finishScratch(player, scratch)
 		showMessage:FireClient(player, "¡Mascota nueva: " .. newPet.name .. "!")
 	end
 
-	local ticketXP = playerData.TicketXP
-	local ticketLevel = playerData.TicketLevel
-
-	ticketXP.Value += 2 ^ playerData.Prestige.Value
-
-	local requiredXP = ticketLevel.Value * 10
-	if ticketXP.Value >= requiredXP then
-		ticketXP.Value = 0
-		ticketLevel.Value += 1
-		showMessage:FireClient(player, "SUBES A NIVEL " .. ticketLevel.Value)
-	end
+	TicketRules.addXP(player, playerData, TicketRules.xpPerScratch(playerData))
 
 	if scratch.kind == "final" then
 		playerData.Money.Value += scratch.reward
@@ -121,12 +110,12 @@ local function finishScratch(player, scratch)
 		end
 		showMessage:FireClient(player, scratch.text .. scratch.reward .. "$")
 		celebrateJackpot(player)
-		jackpotAnnounced:FireAllClients(player.DisplayName, TICKET_NAMES[scratch.ticketType], scratch.reward)
+		jackpotAnnounced:FireAllClients(player.DisplayName, TicketData[scratch.ticketType].Label, scratch.reward)
 	end
 end
 
 scratchTicket.OnServerEvent:Connect(function(player, ticketType)
-	local outcome = typeof(ticketType) == "string" and ticketType ~= "Order" and TicketData[ticketType]
+	local outcome = table.find(TicketData.Order, ticketType) and TicketData[ticketType]
 	if not outcome or pending[player] then
 		return
 	end
@@ -144,19 +133,14 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 
 	tickets.Value -= 1
 
-	local roll = math.random(1, 100)
 	local scratch
 	if outcome.IsFinal then
 		scratch = { kind = "final", reward = outcome.Reward, ticketType = ticketType }
 	elseif not playerData.TutorialDone.Value then
 		-- El primer ticket de cada jugador siempre tiene premio.
 		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.Reward), ticketType = ticketType }
-	elseif roll <= outcome.Lose then
-		scratch = { kind = "lose", reward = 0, ticketType = ticketType }
-	elseif roll <= outcome.Win then
-		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.Reward), ticketType = ticketType }
 	else
-		scratch = { kind = "jackpot", reward = PetService.applyBonus(playerData, outcome.Jackpot), text = outcome.JackpotText, ticketType = ticketType, gift = outcome.JackpotGift }
+		scratch = TicketRules.roll(playerData, ticketType)
 	end
 
 	pending[player] = scratch

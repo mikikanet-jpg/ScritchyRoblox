@@ -835,6 +835,9 @@ local refreshPrestige: () -> ()
 
 local luckRow = createRow(upgradesBody, 1, "🍀", Color3.fromRGB(110, 231, 183), Color3.fromRGB(5, 150, 105), function()
 	local price = stats.Luck.Value * 1000
+	if stats.Luck.Value >= TicketData.MaxLuck then
+		return
+	end
 	if stats.Money.Value < price then
 		showToast("Te faltan " .. money(price - stats.Money.Value))
 	else
@@ -945,15 +948,16 @@ table.insert(ticketLines, "Compra en el ordenador del dormitorio y rasca en la m
 
 helpCard(1, "🎟️ Tickets", ticketLines)
 helpCard(2, "⭐ Nivel y XP", {
-	"Cada ticket rascado a mano da XP. Para subir de nivel necesitas 10 XP por cada nivel que tienes.",
+	"Cada ticket rascado a mano da XP, y con Auto Scratch la mitad. Para subir de nivel necesitas " .. TicketData.XPPerLevel .. " XP por cada nivel que tienes.",
 	"El nivel 5 desbloquea Plata, el 15 desbloquea Oro y el 20 permite hacer prestigio. No cambia las probabilidades.",
 })
 helpCard(3, "🍀 Suerte", {
-	"Cada nivel cuesta $1.000 más que el anterior. De momento no cambia los premios.",
+	"Cada nivel por encima del 1 quita 1 punto a la probabilidad de no ganar nada y lo pasa a premio normal.",
+	"Llega hasta el nivel " .. TicketData.MaxLuck .. " (15 puntos menos). Cada nivel cuesta $1.000 más que el anterior. También sube con cada prestigio.",
 })
 helpCard(4, "🤖 Auto Scratch", {
-	"Rasca un ticket cada pocos segundos, empezando por el mejor que tengas. Nunca pierde, pero no da XP.",
-	"Premios: Básico $15-30, Plata $500-2.500 y Oro $5.000-30.000.",
+	"Rasca un ticket cada pocos segundos, empezando por el mejor que tengas, con las mismas probabilidades y premios que a mano.",
+	"Da la mitad de XP, no suelta mascotas y no rasca el tiquet final.",
 })
 helpCard(5, "⚡ Velocidad", {
 	"Cada mejora quita 0,5 s de espera, desde 5 s hasta un mínimo de 0,5 s.",
@@ -1923,8 +1927,13 @@ end
 local function refreshUpgrades()
 	local luckPrice = stats.Luck.Value * 1000
 	luckRow.title.Text = "Suerte"
-	luckRow.detail.Text = "Nivel " .. stats.Luck.Value
-	setButton(luckRow, money(luckPrice), stats.Money.Value >= luckPrice)
+	local luckBonus = math.min(stats.Luck.Value - 1, TicketData.MaxLuck - 1)
+	luckRow.detail.Text = "Nivel " .. stats.Luck.Value .. ": " .. luckBonus .. " puntos menos de no ganar nada"
+	if stats.Luck.Value >= TicketData.MaxLuck then
+		setButton(luckRow, "Máxima", false)
+	else
+		setButton(luckRow, money(luckPrice), stats.Money.Value >= luckPrice)
+	end
 
 	autoRow.title.Text = "Auto Scratch"
 	if stats.Auto.Value then
@@ -1963,7 +1972,7 @@ refreshPrestige = function()
 end
 
 local function refreshLevel()
-	local required = stats.Level.Value * 10
+	local required = stats.Level.Value * TicketData.XPPerLevel
 	levelLabel.Text = "Nivel " .. stats.Level.Value .. (stats.Prestige.Value > 0 and ("  👑" .. stats.Prestige.Value) or "") .. (stats.GameWon.Value and " 🏆" or "")
 	xpLabel.Text = stats.XP.Value .. "/" .. required
 	tween(xpFill, 0.3, { Size = UDim2.fromScale(math.clamp(stats.XP.Value / required, 0, 1), 1) })

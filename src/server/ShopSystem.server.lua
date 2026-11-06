@@ -32,7 +32,7 @@ buyTicket.OnServerEvent:Connect(function(player, ticketType)
 	local PlayerData = player:WaitForChild("PlayerData")
 	local money = PlayerData:WaitForChild("Money")
 
-	local ticketInfo = typeof(ticketType) == "string" and ticketType ~= "Order" and TicketData[ticketType]
+	local ticketInfo = table.find(TicketData.Order, ticketType) and TicketData[ticketType]
 	local level = PlayerData:WaitForChild("TicketLevel")
 	if not ticketInfo then
 		return
