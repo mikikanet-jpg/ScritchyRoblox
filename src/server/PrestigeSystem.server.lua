@@ -1,11 +1,8 @@
-print("PRESTIGE SERVER FUNCIONA")
-
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
 local prestigeEvent = replicatedStorage:WaitForChild("PrestigeEvent")
 
 prestigeEvent.OnServerEvent:Connect(function(player)
-    print("SERVIDOR RECIBE PRESTIGIO")
 	local playerData = player:WaitForChild("PlayerData")
 
 	local level = playerData:WaitForChild("TicketLevel")

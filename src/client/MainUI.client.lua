@@ -51,9 +51,9 @@ local Theme = {
 }
 
 local Tiers = {
-	{ id = "Basic", name = "Básico", letter = "B", plural = "Tickets Básicos", odds = "35% nada · 55% $30 · 10% $100", color = Color3.fromRGB(79, 173, 255), dark = Color3.fromRGB(37, 99, 235), unlock = 1 },
-	{ id = "Silver", name = "Plata", letter = "P", plural = "Tickets Plata", odds = "25% nada · 60% $500 · 15% $1.500", color = Color3.fromRGB(203, 213, 225), dark = Color3.fromRGB(100, 116, 139), unlock = 5 },
-	{ id = "Gold", name = "Oro", letter = "O", plural = "Tickets Oro", odds = "15% nada · 60% $25.000 · 25% $50.000", color = Color3.fromRGB(252, 211, 77), dark = Color3.fromRGB(217, 119, 6), unlock = 15 },
+	{ id = "Basic", name = "Básico", letter = "B", plural = "Tickets Básicos", odds = "35% nada · 55% $30 · 10% $100", color = Color3.fromRGB(79, 173, 255), dark = Color3.fromRGB(37, 99, 235), unlock = TicketData.Basic.UnlockLevel },
+	{ id = "Silver", name = "Plata", letter = "P", plural = "Tickets Plata", odds = "25% nada · 60% $500 · 15% $1.500", color = Color3.fromRGB(203, 213, 225), dark = Color3.fromRGB(100, 116, 139), unlock = TicketData.Silver.UnlockLevel },
+	{ id = "Gold", name = "Oro", letter = "O", plural = "Tickets Oro", odds = "15% nada · 60% $25.000 · 25% $50.000", color = Color3.fromRGB(252, 211, 77), dark = Color3.fromRGB(217, 119, 6), unlock = TicketData.Gold.UnlockLevel },
 }
 
 local FONT = Enum.Font.GothamMedium
@@ -1472,6 +1472,10 @@ refreshLevel()
 ---------------------------------------------------------------------
 -- Eventos del servidor
 ---------------------------------------------------------------------
+
+if player:GetAttribute("DataLoadFailed") then
+	showToast("No se pudo cargar tu progreso: esta partida no se guardará")
+end
 
 remotes.OpenShop.OnClientEvent:Connect(function()
 	openPanel("Shop")

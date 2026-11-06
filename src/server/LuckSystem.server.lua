@@ -1,4 +1,3 @@
-print("LUCK SERVER FUNCIONA")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
 local buyLuck = replicatedStorage:WaitForChild("BuyLuck")
@@ -6,7 +5,6 @@ local buyLuck = replicatedStorage:WaitForChild("BuyLuck")
 local showMessage = replicatedStorage:WaitForChild("ShowMessage")
 
 buyLuck.OnServerEvent:Connect(function(player)
-print("COMPRA LUCK")
 	local playerData = player:WaitForChild("PlayerData")
 
 	local money = playerData:WaitForChild("Money")

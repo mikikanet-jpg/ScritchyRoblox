@@ -19,9 +19,11 @@ buyTicket.OnServerEvent:Connect(function(player, ticketType)
 	local PlayerData = player:WaitForChild("PlayerData")
 	local money = PlayerData:WaitForChild("Money")
 
-	local ticketInfo = TicketData[ticketType]
+	local ticketInfo = typeof(ticketType) == "string" and TicketData[ticketType]
+	local level = PlayerData:WaitForChild("TicketLevel")
 
-	if ticketInfo and money.Value >= ticketInfo.Price then
+	-- El servidor también comprueba el nivel, no solo el menú.
+	if ticketInfo and level.Value >= ticketInfo.UnlockLevel and money.Value >= ticketInfo.Price then
 
 		money.Value -= ticketInfo.Price
 

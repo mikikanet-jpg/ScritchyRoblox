@@ -2,6 +2,7 @@ local TicketData = {
 
 	Basic = {
 		Price = 10,
+		UnlockLevel = 1,
 
 		LoseChance = 50,
 		WinChance = 35,
@@ -15,6 +16,7 @@ local TicketData = {
 
 	Silver = {
 		Price = 750,
+		UnlockLevel = 5,
 
 		LoseChance = 50,
 		WinChance = 40,
@@ -28,6 +30,7 @@ local TicketData = {
 
 	Gold = {
 		Price = 10000,
+		UnlockLevel = 15,
 
 		LoseChance = 40,
 		WinChance = 45,

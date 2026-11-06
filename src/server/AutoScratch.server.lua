@@ -1,125 +1,61 @@
-print("AUTO SCRATCH SERVER FUNCIONA")
-
+local Players = game:GetService("Players")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
 local buyAutoScratch = replicatedStorage:WaitForChild("BuyAutoScratch")
-
 local showMessage = replicatedStorage:WaitForChild("ShowMessage")
 
--- COMPRAR
+local PRICE = 3000
+
+-- Del mejor ticket al peor.
+local AUTO_ORDER = {
+	{ stat = "GoldTickets", label = "GOLD", min = 5000, max = 30000 },
+	{ stat = "SilverTickets", label = "SILVER", min = 500, max = 2500 },
+	{ stat = "BasicTickets", label = "BASIC", min = 15, max = 30 },
+}
 
 buyAutoScratch.OnServerEvent:Connect(function(player)
-
-	local playerData = player:WaitForChild("PlayerData")
-
-	local money = playerData:WaitForChild("Money")
-
-	local autoScratch = playerData:WaitForChild("AutoScratch")
-
-	if autoScratch.Value == true then
-
-		showMessage:FireClient(player, "Ya tienes Auto Scratch")
-
+	local playerData = player:FindFirstChild("PlayerData")
+	if not playerData then
 		return
-
 	end
 
-	if money.Value >= 3000 then
+	local money = playerData.Money
+	local autoScratch = playerData.AutoScratch
 
-		money.Value -= 3000
-
+	if autoScratch.Value then
+		showMessage:FireClient(player, "Ya tienes Auto Scratch")
+	elseif money.Value >= PRICE then
+		money.Value -= PRICE
 		autoScratch.Value = true
-
 		showMessage:FireClient(player, "AUTO SCRATCH DESBLOQUEADO")
-
 	else
-
-		showMessage:FireClient(player, "Necesitas 3000$")
-
+		showMessage:FireClient(player, "Necesitas " .. PRICE .. "$")
 	end
-
 end)
 
--- AUTO SCRATCH LOOP
+local function runAutoScratch(player)
+	local playerData = player:WaitForChild("PlayerData", 60)
 
-game.Players.PlayerAdded:Connect(function(player)
+	-- El bucle termina cuando el jugador sale.
+	while playerData and player:IsDescendantOf(Players) do
+		task.wait(playerData.AutoScratchSpeed.Value)
 
-	task.spawn(function()
-
-        while true do
-
-            local playerData = player:FindFirstChild("PlayerData")
-
-            if not playerData then
-                task.wait(1)
-                continue
-            end
-
-            local speed = playerData:FindFirstChild("AutoScratchSpeed")
-
-            task.wait(speed.Value)
-
-			local autoScratch = playerData:FindFirstChild("AutoScratch")
-
-			if autoScratch and autoScratch.Value == true then
-
-				local money = playerData:FindFirstChild("Money")
-
-				local goldTickets = playerData:FindFirstChild("GoldTickets")
-				local silverTickets = playerData:FindFirstChild("SilverTickets")
-				local basicTickets = playerData:FindFirstChild("BasicTickets")
-
-				-- GOLD
-
-				if goldTickets and goldTickets.Value > 0 then
-
-					goldTickets.Value -= 1
-
-					local reward = math.random(5000,30000)
-
-					money.Value += reward
-
-					showMessage:FireClient(
-						player,
-						"[AUTO GOLD] +" .. reward .. "$"
-					)
-
-				-- SILVER
-
-				elseif silverTickets and silverTickets.Value > 0 then
-
-					silverTickets.Value -= 1
-
-					local reward = math.random(500,2500)
-
-					money.Value += reward
-
-					showMessage:FireClient(
-						player,
-						"[AUTO SILVER] +" .. reward .. "$"
-					)
-
-				-- BASIC
-
-				elseif basicTickets and basicTickets.Value > 0 then
-
-					basicTickets.Value -= 1
-
-					local reward = math.random(15,30)
-
-					money.Value += reward
-
-					showMessage:FireClient(
-						player,
-						"[AUTO BASIC] +" .. reward .. "$"
-					)
-
+		if player:IsDescendantOf(Players) and playerData.AutoScratch.Value then
+			for _, ticket in AUTO_ORDER do
+				local tickets = playerData[ticket.stat]
+				if tickets.Value > 0 then
+					tickets.Value -= 1
+					local reward = math.random(ticket.min, ticket.max)
+					playerData.Money.Value += reward
+					showMessage:FireClient(player, "[AUTO " .. ticket.label .. "] +" .. reward .. "$")
+					break
 				end
-
 			end
-
 		end
+	end
+end
 
-	end)
-
-end)
+Players.PlayerAdded:Connect(runAutoScratch)
+for _, player in Players:GetPlayers() do
+	task.spawn(runAutoScratch, player)
+end
