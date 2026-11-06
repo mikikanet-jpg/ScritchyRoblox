@@ -25,6 +25,8 @@ local remotes = {
 	BuyAutoScratch = ReplicatedStorage:WaitForChild("BuyAutoScratch") :: RemoteEvent,
 	UpgradeAutoSpeed = ReplicatedStorage:WaitForChild("UpgradeAutoSpeed") :: RemoteEvent,
 	PrestigeEvent = ReplicatedStorage:WaitForChild("PrestigeEvent") :: RemoteEvent,
+	ScratchStarted = ReplicatedStorage:WaitForChild("ScratchStarted") :: RemoteEvent,
+	ScratchReveal = ReplicatedStorage:WaitForChild("ScratchReveal") :: RemoteEvent,
 }
 
 -- Estos valores repiten los del servidor. Si cambian allí, hay que cambiarlos también aquí.
@@ -338,11 +340,13 @@ end
 ---------------------------------------------------------------------
 
 local backdrop
+local cardOpen = false
+local scratchRequested = false
 local openPanelName: string? = nil
 local panels: { [string]: { root: Frame, scale: UIScale } } = {}
 
 local function closePanels()
-	if not openPanelName then
+	if cardOpen or not openPanelName then
 		return
 	end
 	local name = openPanelName :: string
@@ -361,6 +365,9 @@ local function closePanels()
 end
 
 local function openPanel(name: string)
+	if cardOpen then
+		return
+	end
 	if openPanelName == name then
 		closePanels()
 		return
@@ -756,7 +763,11 @@ for index, tier in Tiers do
 	scratchRows[tier.id] = createRow(scratchBody, index, "🎟️", tier.color, tier.dark, function()
 		if stats[tier.id].Value <= 0 then
 			showToast("No tienes tickets " .. tier.name)
-		else
+		elseif not scratchRequested then
+			scratchRequested = true
+			task.delay(3, function()
+				scratchRequested = false
+			end)
 			remotes.ScratchTicket:FireServer(tier.id)
 		end
 	end)
@@ -870,7 +881,7 @@ local ticketLines = {}
 for _, tier in Tiers do
 	table.insert(ticketLines, tier.name .. " (" .. money(TicketData[tier.id].Price) .. "): " .. tier.odds)
 end
-table.insert(ticketLines, "Compra en el ordenador y rasca en la mesa.")
+table.insert(ticketLines, "Compra en el ordenador y rasca en la mesa arrastrando el ratón o el dedo.")
 
 helpCard(1, "🎟️ Tickets", ticketLines)
 helpCard(2, "⭐ Nivel y XP", {
@@ -907,6 +918,437 @@ local infoButton = button({
 	openPanel("Help")
 end)
 stroke(Theme.Stroke, 0.2).Parent = infoButton
+
+---------------------------------------------------------------------
+-- Ticket para rascar
+---------------------------------------------------------------------
+
+-- Pega aquí los ID de sonido, por ejemplo "rbxassetid://123456".
+local SOUND_IDS = { Scratch = "", Lose = "", Win = "", Jackpot = "" }
+
+local CARD_W, CARD_H = 440, 332
+local ZONE_W, ZONE_H = 400, 190
+local COLUMNS, ROWS = 30, 14
+local CELL_W, CELL_H = ZONE_W / COLUMNS, ZONE_H / ROWS
+local BRUSH_RADIUS = 24
+local REVEAL_AT = 0.6
+
+local tiersById: { [string]: any } = {}
+for _, tier in Tiers do
+	tiersById[tier.id] = tier
+end
+
+local cardGui = make("ScreenGui", {
+	Name = "ScratchCard",
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	DisplayOrder = 15,
+	Enabled = false,
+	Parent = playerGui,
+})
+
+make("TextButton", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	Text = "",
+	AutoButtonColor = false,
+	Parent = cardGui,
+})
+
+local cardScale = make("UIScale", { Scale = 1 })
+local cardCenter = UDim2.fromScale(0.5, 0.5)
+local card = make("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = cardCenter,
+	Size = UDim2.fromOffset(CARD_W, CARD_H),
+	BackgroundColor3 = Theme.Bg,
+	ZIndex = 2,
+	Parent = cardGui,
+}, { corner(18), cardScale })
+local cardStroke = stroke(Theme.Stroke)
+cardStroke.Thickness = 2
+cardStroke.Parent = card
+
+local cardTitle = label({
+	Position = UDim2.fromOffset(20, 12),
+	Size = UDim2.new(1, -40, 0, 34),
+	Font = FONT_BLACK,
+	TextSize = 24,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 2,
+	Parent = card,
+})
+
+local zone = make("Frame", {
+	Position = UDim2.fromOffset(20, 54),
+	Size = UDim2.fromOffset(ZONE_W, ZONE_H),
+	BackgroundColor3 = Theme.Surface,
+	ClipsDescendants = true,
+	ZIndex = 2,
+	Parent = card,
+}, { corner(12) })
+
+local prizeScale = make("UIScale", { Scale = 1 })
+local prizeLabel = label({
+	Size = UDim2.new(1, -20, 0, 76),
+	Position = UDim2.fromOffset(10, 44),
+	Font = FONT_BLACK,
+	TextSize = 44,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 2,
+	Parent = zone,
+})
+prizeScale.Parent = prizeLabel
+local prizeSubLabel = label({
+	Size = UDim2.new(1, -20, 0, 30),
+	Position = UDim2.fromOffset(10, 118),
+	Font = FONT_BOLD,
+	TextSize = 18,
+	TextColor3 = Theme.Muted,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 2,
+	Parent = zone,
+})
+
+local foilCells: { Frame } = {}
+for row = 0, ROWS - 1 do
+	for column = 0, COLUMNS - 1 do
+		table.insert(foilCells, make("Frame", {
+			Position = UDim2.fromOffset(column * CELL_W, row * CELL_H),
+			Size = UDim2.fromOffset(math.ceil(CELL_W) + 1, math.ceil(CELL_H) + 1),
+			BorderSizePixel = 0,
+			ZIndex = 3,
+			Parent = zone,
+		}))
+	end
+end
+
+local foilHint = label({
+	Size = UDim2.fromScale(1, 1),
+	Text = "RASCA AQUÍ",
+	Font = FONT_BLACK,
+	TextSize = 30,
+	TextColor3 = Theme.Bg,
+	TextTransparency = 0.25,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 4,
+	Parent = zone,
+})
+
+-- Captura el ratón o el dedo por encima de la capa.
+local scratchInput = make("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	Active = true,
+	ZIndex = 5,
+	Parent = zone,
+})
+
+local activeTier: any = nil
+local activeKind = "lose"
+local cellsLeft = 0
+local revealed = false
+local scratching = false
+local lastPoint: Vector2? = nil
+local lastScratchSound = 0
+local finishScratchCard: () -> ()
+
+local function playSound(name: string)
+	local id = (SOUND_IDS :: any)[name]
+	if id == "" then
+		return
+	end
+	local sound = make("Sound", { SoundId = id, Parent = cardGui })
+	sound.Ended:Once(function()
+		sound:Destroy()
+	end)
+	sound:Play()
+end
+
+local function spawnChip(position: UDim2, color: Color3)
+	local chip = make("Frame", {
+		Position = position,
+		Size = UDim2.fromOffset(math.random(3, 6), math.random(3, 6)),
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		ZIndex = 6,
+		Parent = card,
+	})
+	local fall = tween(chip, 0.5, {
+		Position = position + UDim2.fromOffset(math.random(-24, 24), math.random(30, 70)),
+		BackgroundTransparency = 1,
+		Rotation = math.random(-180, 180),
+	}, Enum.EasingStyle.Quad)
+	fall.Completed:Once(function()
+		chip:Destroy()
+	end)
+end
+
+local function scratchPoint(x: number, y: number)
+	local firstColumn = math.max(0, math.floor((x - BRUSH_RADIUS) / CELL_W))
+	local lastColumn = math.min(COLUMNS - 1, math.floor((x + BRUSH_RADIUS) / CELL_W))
+	local firstRow = math.max(0, math.floor((y - BRUSH_RADIUS) / CELL_H))
+	local lastRow = math.min(ROWS - 1, math.floor((y + BRUSH_RADIUS) / CELL_H))
+	for row = firstRow, lastRow do
+		for column = firstColumn, lastColumn do
+			local cell = foilCells[row * COLUMNS + column + 1]
+			local dx = (column + 0.5) * CELL_W - x
+			local dy = (row + 0.5) * CELL_H - y
+			if cell.Visible and dx * dx + dy * dy <= BRUSH_RADIUS * BRUSH_RADIUS then
+				cell.Visible = false
+				cellsLeft -= 1
+				if math.random() < 0.3 then
+					spawnChip(UDim2.fromOffset(20 + column * CELL_W, 54 + row * CELL_H), cell.BackgroundColor3)
+				end
+			end
+		end
+	end
+end
+
+local function scratchTo(point: Vector2)
+	if revealed then
+		return
+	end
+	foilHint.Visible = false
+
+	local origin = zone.AbsolutePosition
+	local size = zone.AbsoluteSize
+	local current = Vector2.new((point.X - origin.X) / size.X * ZONE_W, (point.Y - origin.Y) / size.Y * ZONE_H)
+	local previous = lastPoint or current
+	local distance = (current - previous).Magnitude
+	local steps = math.max(1, math.ceil(distance / (BRUSH_RADIUS / 2)))
+	for step = 1, steps do
+		local at = previous:Lerp(current, step / steps)
+		scratchPoint(at.X, at.Y)
+	end
+	lastPoint = current
+
+	if distance > 2 and os.clock() - lastScratchSound > 0.12 then
+		lastScratchSound = os.clock()
+		playSound("Scratch")
+	end
+	if cellsLeft <= #foilCells * (1 - REVEAL_AT) then
+		finishScratchCard()
+	end
+end
+
+scratchInput.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		scratching = true
+		lastPoint = nil
+		scratchTo(Vector2.new(input.Position.X, input.Position.Y))
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if scratching and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		scratchTo(Vector2.new(input.Position.X, input.Position.Y))
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		scratching = false
+	end
+end)
+
+local function closeCard()
+	cardGui.Enabled = false
+	cardOpen = false
+	if openPanelName == "Scratch" then
+		panels.Scratch.root.Visible = true
+	end
+end
+
+local revealButton = button({
+	Position = UDim2.fromOffset(20, 258),
+	Size = UDim2.fromOffset(ZONE_W, 56),
+	Text = "Revelar sin rascar",
+	TextSize = 16,
+	BackgroundColor3 = Theme.SurfaceHigh,
+	Parent = card,
+}, function()
+	finishScratchCard()
+end)
+revealButton.ZIndex = 2
+
+local againButton, setAgainColor = button({
+	Position = UDim2.fromOffset(20, 258),
+	Size = UDim2.fromOffset(240, 56),
+	TextSize = 16,
+	Parent = card,
+}, function()
+	if not activeTier or not revealed or scratchRequested then
+		return
+	end
+	if stats[activeTier.id].Value <= 0 then
+		showToast("No tienes tickets " .. activeTier.name)
+		return
+	end
+	scratchRequested = true
+	task.delay(3, function()
+		scratchRequested = false
+	end)
+	remotes.ScratchTicket:FireServer(activeTier.id)
+end)
+againButton.ZIndex = 2
+
+local closeButton = button({
+	Position = UDim2.fromOffset(270, 258),
+	Size = UDim2.fromOffset(150, 56),
+	Text = "Cerrar",
+	TextSize = 16,
+	BackgroundColor3 = Theme.SurfaceHigh,
+	Parent = card,
+}, closeCard)
+closeButton.ZIndex = 2
+
+local function confetti(amount: number)
+	local colors = { Theme.Amber, Theme.Green, Theme.AccentHigh, Theme.Red, Color3.fromRGB(79, 173, 255) }
+	for _ = 1, amount do
+		local piece = make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, math.random(-40, 40), 0.42, math.random(-20, 20)),
+			Size = UDim2.fromOffset(math.random(6, 11), math.random(8, 15)),
+			BackgroundColor3 = colors[math.random(1, #colors)],
+			BorderSizePixel = 0,
+			ZIndex = 7,
+			Parent = cardGui,
+		})
+		local seconds = 0.9 + math.random() * 0.8
+		local flight = tween(piece, seconds, {
+			Position = UDim2.new(0.5 + (math.random() - 0.5) * 0.9, 0, 0.42 + (math.random() - 0.2) * 0.8, 0),
+			Rotation = math.random(-540, 540),
+			BackgroundTransparency = 1,
+		}, Enum.EasingStyle.Quad)
+		flight.Completed:Once(function()
+			piece:Destroy()
+		end)
+	end
+end
+
+local function shakeCard()
+	task.spawn(function()
+		for _ = 1, 10 do
+			card.Position = cardCenter + UDim2.fromOffset(math.random(-9, 9), math.random(-7, 7))
+			task.wait(0.03)
+		end
+		card.Position = cardCenter
+	end)
+end
+
+finishScratchCard = function()
+	if revealed then
+		return
+	end
+	revealed = true
+	scratching = false
+	foilHint.Visible = false
+
+	for _, cell in foilCells do
+		if cell.Visible then
+			tween(cell, 0.25, { BackgroundTransparency = 1 })
+		end
+	end
+	task.delay(0.26, function()
+		if revealed then
+			for _, cell in foilCells do
+				cell.Visible = false
+			end
+		end
+	end)
+
+	remotes.ScratchReveal:FireServer()
+
+	prizeScale.Scale = 0.6
+	tween(prizeScale, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
+
+	if activeKind == "jackpot" then
+		playSound("Jackpot")
+		tween(cardStroke, 0.2, { Color = Theme.Amber })
+		confetti(70)
+		shakeCard()
+	elseif activeKind == "win" then
+		playSound("Win")
+		tween(cardStroke, 0.2, { Color = Theme.Green })
+		confetti(22)
+	else
+		playSound("Lose")
+	end
+
+	revealButton.Visible = false
+	againButton.Visible = true
+	closeButton.Visible = true
+	task.defer(function()
+		local left = activeTier and stats[activeTier.id].Value or 0
+		againButton.Text = "Rascar otro (" .. formatNumber(left) .. ")"
+		setAgainColor(left > 0 and Theme.Accent or Theme.Disabled)
+	end)
+end
+
+local function openCard(ticketType: string, kind: string, reward: number)
+	local tier = tiersById[ticketType]
+	if not tier then
+		return
+	end
+
+	activeTier = tier
+	activeKind = kind
+	revealed = false
+	scratching = false
+	lastPoint = nil
+	cellsLeft = #foilCells
+
+	cardTitle.Text = "Ticket " .. tier.name
+	cardTitle.TextColor3 = tier.color
+	cardStroke.Color = tier.color
+	card.Position = cardCenter
+
+	for _, cell in foilCells do
+		cell.Visible = true
+		cell.BackgroundTransparency = 0
+		cell.BackgroundColor3 = tier.color:Lerp(tier.dark, math.random() * 0.35)
+	end
+	foilHint.Visible = true
+
+	if kind == "jackpot" then
+		prizeLabel.Text = "¡JACKPOT!"
+		prizeLabel.TextColor3 = Theme.Amber
+		prizeSubLabel.Text = "+" .. money(reward)
+		prizeSubLabel.TextColor3 = Theme.Amber
+	elseif kind == "win" then
+		prizeLabel.Text = "+" .. money(reward)
+		prizeLabel.TextColor3 = Theme.Green
+		prizeSubLabel.Text = "¡Premio!"
+		prizeSubLabel.TextColor3 = Theme.Muted
+	else
+		prizeLabel.Text = "Sin premio"
+		prizeLabel.TextColor3 = Theme.Muted
+		prizeSubLabel.Text = "Otra vez será"
+		prizeSubLabel.TextColor3 = Theme.Muted
+	end
+
+	revealButton.Visible = true
+	againButton.Visible = false
+	closeButton.Visible = false
+
+	local camera = Workspace.CurrentCamera
+	if camera then
+		local viewport = camera.ViewportSize
+		cardScale.Scale = math.min(1, (viewport.X - 24) / CARD_W, (viewport.Y - 90) / CARD_H)
+	end
+
+	cardOpen = true
+	if openPanelName == "Scratch" then
+		panels.Scratch.root.Visible = false
+	end
+	cardGui.Enabled = true
+end
+
+remotes.ScratchStarted.OnClientEvent:Connect(function(ticketType: string, kind: string, reward: number)
+	scratchRequested = false
+	openCard(ticketType, kind, reward)
+end)
 
 ---------------------------------------------------------------------
 -- Actualizar la interfaz
