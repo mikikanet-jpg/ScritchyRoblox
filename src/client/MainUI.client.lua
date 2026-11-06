@@ -14,6 +14,7 @@ local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
 local data = player:WaitForChild("PlayerData")
 
 local TicketData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TicketData")) :: any
+local PetData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PetData")) :: any
 
 local remotes = {
 	ShowMessage = ReplicatedStorage:WaitForChild("ShowMessage") :: RemoteEvent,
@@ -899,6 +900,10 @@ helpCard(4, "🤖 Auto Scratch", {
 helpCard(5, "⚡ Velocidad", {
 	"Cada mejora quita 0,5 s de espera, desde 5 s hasta un mínimo de 0,5 s.",
 })
+helpCard(7, "🐾 Mascotas", {
+	"Al rascar a mano puede salir una mascota: 5% con Básico, 10% con Plata y 15% con Oro. Si ya la tienes, no pasa nada.",
+	"Equipa una en el botón del perrito: te sigue y sube los premios. El prestigio no te la quita.",
+})
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
@@ -1536,6 +1541,70 @@ local function setButton(row: Row, text: string, enabled: boolean, color: Color3
 	row.setActionColor(enabled and (color or Theme.Accent) or Theme.Disabled)
 	row.action.TextColor3 = enabled and Theme.Text or Theme.Muted
 end
+
+---------------------------------------------------------------------
+-- Mascotas
+---------------------------------------------------------------------
+
+local ownedPets = stat("OwnedPets")
+local equippedPet = stat("EquippedPet")
+local equipPetRemote = ReplicatedStorage:WaitForChild("EquipPet") :: RemoteEvent
+
+local petsBody = createPanel("Pets", "Mascotas", "Pueden salir al rascar a mano. Equipa una para ganar más", 620)
+local petRows: { [string]: Row } = {}
+
+for index, pet in PetData.Pets do
+	local rarity = PetData.Rarities[pet.rarity]
+	petRows[pet.id] = createRow(petsBody, index, pet.emoji, rarity.color, rarity.dark, function()
+		if not PetData.owns(ownedPets.Value, pet.id) then
+			showToast("Aún no tienes esta mascota")
+		elseif equippedPet.Value == pet.id then
+			equipPetRemote:FireServer("")
+		else
+			equipPetRemote:FireServer(pet.id)
+		end
+	end)
+end
+
+local function refreshPets()
+	for _, pet in PetData.Pets do
+		local row = petRows[pet.id]
+		local rarity = PetData.Rarities[pet.rarity]
+		local bonusText = "+" .. math.round(pet.bonus * 100) .. "% de premios"
+		if PetData.owns(ownedPets.Value, pet.id) then
+			row.title.Text = pet.name
+			row.detail.Text = rarity.label .. " · " .. bonusText
+			if equippedPet.Value == pet.id then
+				setButton(row, "Quitar", true, Theme.Green)
+				row.action.TextColor3 = Theme.Bg
+			else
+				setButton(row, "Equipar", true)
+			end
+		else
+			row.title.Text = "???"
+			row.detail.Text = rarity.label .. " · " .. bonusText .. string.format(" · %.1f%%", PetData.share(pet))
+			setButton(row, "Bloqueada", false)
+		end
+	end
+end
+
+ownedPets.Changed:Connect(refreshPets)
+equippedPet.Changed:Connect(refreshPets)
+refreshPets()
+
+local petsButton = button({
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UserInputService.TouchEnabled and UDim2.new(0, 16, 0.5, -56) or UDim2.new(0, 16, 1, -72),
+	Size = UDim2.fromOffset(46, 46),
+	Text = "🐶",
+	TextSize = 22,
+	BackgroundColor3 = Theme.Bg,
+	Radius = 23,
+	Parent = hudGui,
+}, function()
+	openPanel("Pets")
+end)
+stroke(Theme.Stroke, 0.2).Parent = petsButton
 
 local function refreshTickets()
 	for _, tier in Tiers do

@@ -20,6 +20,8 @@ local STATS = {
 	{ name = "AutoScratch", class = "BoolValue", default = false },
 	{ name = "AutoScratchSpeed", class = "NumberValue", default = 5 },
 	{ name = "TutorialDone", class = "BoolValue", default = false },
+	{ name = "OwnedPets", class = "StringValue", default = "" },
+	{ name = "EquippedPet", class = "StringValue", default = "" },
 }
 
 local store

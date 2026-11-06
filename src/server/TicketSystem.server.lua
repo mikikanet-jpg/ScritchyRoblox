@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local PetService = require(script.Parent:WaitForChild("PetService"))
+
 local interactPart = workspace:WaitForChild("TicketTable_Interact")
 local prompt = interactPart:WaitForChild("ProximityPrompt")
 
@@ -74,6 +76,11 @@ local function finishScratch(player, scratch)
 
 	playerData.TutorialDone.Value = true
 
+	local newPet = PetService.rollDrop(playerData, scratch.ticketType)
+	if newPet then
+		showMessage:FireClient(player, "¡Mascota nueva: " .. newPet.name .. "!")
+	end
+
 	local ticketXP = playerData.TicketXP
 	local ticketLevel = playerData.TicketLevel
 
@@ -123,13 +130,13 @@ scratchTicket.OnServerEvent:Connect(function(player, ticketType)
 	local scratch
 	if not playerData.TutorialDone.Value then
 		-- El primer ticket de cada jugador siempre tiene premio.
-		scratch = { kind = "win", reward = outcome.reward }
+		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.reward), ticketType = ticketType }
 	elseif roll <= outcome.lose then
-		scratch = { kind = "lose", reward = 0 }
+		scratch = { kind = "lose", reward = 0, ticketType = ticketType }
 	elseif roll <= outcome.win then
-		scratch = { kind = "win", reward = outcome.reward }
+		scratch = { kind = "win", reward = PetService.applyBonus(playerData, outcome.reward), ticketType = ticketType }
 	else
-		scratch = { kind = "jackpot", reward = outcome.jackpot, text = outcome.jackpotText, ticketType = ticketType }
+		scratch = { kind = "jackpot", reward = PetService.applyBonus(playerData, outcome.jackpot), text = outcome.jackpotText, ticketType = ticketType }
 	end
 
 	pending[player] = scratch
