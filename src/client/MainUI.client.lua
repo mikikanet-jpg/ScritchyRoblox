@@ -10,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
@@ -1043,7 +1044,7 @@ helpCard(10, "🎯 Misiones y logros", {
 	"Los logros se cobran una sola vez. Los tickets de Auto Scratch no cuentan como rascados, pero su dinero sí cuenta como ganado.",
 })
 helpCard(11, "🎮 Mando y consolas", {
-	"Y abre las mejoras y X la tienda. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo).",
+	"Y abre las mejoras, X la tienda y LB (L1 en PlayStation) el ranking. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo).",
 	"En los menús, muévete con la cruceta o el stick izquierdo, confirma con A y cierra con B (en PlayStation, X y círculo).",
 	"Rasca moviendo el stick derecho o pulsa A para revelar. Para comprar o rascar, acércate y usa el botón que indica el aviso.",
 })
@@ -1061,6 +1062,10 @@ helpCard(13, "🎁 Regalo diario", {
 helpCard(14, "🔑 Códigos", {
 	"En la tienda puedes escribir códigos que regalan dinero del juego. Son gratis y cada uno se usa una sola vez.",
 	"Los códigos nuevos salen en los vídeos del juego.",
+})
+helpCard(15, "🏅 Ranking", {
+	"El botón de la medalla enseña los 10 jugadores de todo Roblox que más dinero han ganado y los 10 que más jackpots han sacado. Se actualiza cada 2 minutos.",
+	"Cuenta todo lo que has ganado desde que empezaste, aunque te lo gastes o hagas prestigio.",
 })
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
@@ -1735,6 +1740,115 @@ local function setButton(row: Row, text: string, enabled: boolean, color: Color3
 end
 
 ---------------------------------------------------------------------
+-- Ranking
+---------------------------------------------------------------------
+
+local rankingBody = createPanel("Ranking", "Ranking", "Los 10 mejores de todo Roblox. Se actualiza cada 2 minutos", 620)
+local boardsFolder = ReplicatedStorage:WaitForChild("Leaderboards")
+local MEDALS = { "🥇", "🥈", "🥉" }
+
+local function addBoard(order: number, id: string, title: string, format: (number) -> string)
+	local section = make("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+		Parent = rankingBody,
+	}, {
+		make("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	label({
+		Size = UDim2.new(1, 0, 0, 30),
+		Text = title,
+		Font = FONT_BOLD,
+		TextSize = 17,
+		LayoutOrder = 0,
+		Parent = section,
+	})
+
+	local source = boardsFolder:WaitForChild(id) :: StringValue
+	local rows: { Instance } = {}
+	local function refresh()
+		for _, row in rows do
+			row:Destroy()
+		end
+		table.clear(rows)
+
+		local ok, list = pcall(function()
+			return HttpService:JSONDecode(source.Value)
+		end)
+		if not ok or #list == 0 then
+			table.insert(rows, label({
+				Size = UDim2.new(1, 0, 0, 36),
+				Text = "Todavía no hay nadie. ¡Sé el primero!",
+				TextColor3 = Theme.Muted,
+				LayoutOrder = 1,
+				Parent = section,
+			}))
+			return
+		end
+		for position, entry in list do
+			local isMe = entry.id == player.UserId
+			local frame = make("Frame", {
+				Size = UDim2.new(1, 0, 0, 40),
+				BackgroundColor3 = isMe and Theme.SurfaceHigh or Theme.Surface,
+				LayoutOrder = position,
+				Parent = section,
+			}, { corner(10), stroke(isMe and Theme.Amber or Theme.Stroke, isMe and 0.2 or 0.6) })
+			label({
+				Position = UDim2.fromOffset(12, 0),
+				Size = UDim2.fromOffset(40, 40),
+				Text = MEDALS[position] or ("#" .. position),
+				Font = FONT_BLACK,
+				TextSize = 16,
+				Parent = frame,
+			})
+			-- "Raw" evita que el traductor toque el nombre del jugador.
+			label({
+				Name = "Raw",
+				Position = UDim2.fromOffset(56, 0),
+				Size = UDim2.new(1, -206, 1, 0),
+				Text = tostring(entry.name),
+				Font = FONT_BOLD,
+				TextSize = 15,
+				Parent = frame,
+			})
+			label({
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -12, 0, 0),
+				Size = UDim2.fromOffset(140, 40),
+				Text = format(entry.value),
+				Font = FONT_BOLD,
+				TextSize = 15,
+				TextColor3 = Theme.Green,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Parent = frame,
+			})
+			table.insert(rows, frame)
+		end
+	end
+	source.Changed:Connect(refresh)
+	refresh()
+end
+
+addBoard(1, "Earned", "💰 Más dinero ganado", money)
+addBoard(2, "Jackpots", "🎉 Más jackpots", formatNumber)
+
+local rankingButton = button({
+	AnchorPoint = (roundButtonLayout(5)),
+	Position = select(2, roundButtonLayout(5)),
+	Size = select(3, roundButtonLayout(5)),
+	Text = "🏅",
+	TextSize = 22,
+	BackgroundColor3 = Theme.Bg,
+	Radius = 23,
+	Parent = hudGui,
+}, function()
+	openPanel("Ranking")
+end)
+stroke(Theme.Stroke, 0.2).Parent = rankingButton
+
+---------------------------------------------------------------------
 -- Tienda con Robux
 ---------------------------------------------------------------------
 
@@ -2117,6 +2231,7 @@ for _, name in MissionData.WatchedStats do
 	stat(name).Changed:Connect(refreshMissions)
 end
 stat("GiftDay").Changed:Connect(refreshMissions)
+stat("GiftCount").Changed:Connect(refreshMissions)
 refreshMissions()
 
 -- El regalo vuelve a estar disponible al cambiar de día, aunque no cambie ninguna estadística.
@@ -2323,6 +2438,7 @@ local SHORTCUTS = {
 	{ key = Enum.KeyCode.DPadLeft, panel = "Pets", text = "Mascotas" },
 	{ key = Enum.KeyCode.DPadDown, panel = "Help", text = "Ayuda" },
 	{ key = Enum.KeyCode.ButtonX, panel = "Store", text = "Tienda" },
+	{ key = Enum.KeyCode.ButtonL1, panel = "Ranking", text = "Ranking" },
 }
 
 for index, shortcut in SHORTCUTS do
@@ -2489,7 +2605,7 @@ uiChanged()
 
 -- Traduce cualquier texto de la interfaz en el momento en que se muestra.
 local function localizeLabel(object: Instance)
-	if not object:IsA("TextLabel") and not object:IsA("TextButton") then
+	if (not object:IsA("TextLabel") and not object:IsA("TextButton")) or object.Name == "Raw" then
 		return
 	end
 	local textObject = object :: any

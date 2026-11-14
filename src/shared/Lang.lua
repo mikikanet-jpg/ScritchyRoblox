@@ -164,6 +164,15 @@ local EXACT = {
 	["🎁 Regalo diario"] = "🎁 Daily gift",
 	["Cada día puedes reclamar un regalo en el botón de la diana. Son 7 regalos que van subiendo y luego vuelven a empezar."] = "Every day you can claim a gift with the target button. There are 7 gifts that keep growing, then they start over.",
 	["El premio es dinero y crece con tu nivel: el regalo 7 da 20 veces más que el 1. Si un día no entras, no pierdes nada: sigues por donde ibas."] = "The prize is money and grows with your level: gift 7 gives 20 times more than gift 1. If you miss a day you lose nothing: you continue where you left off.",
+	-- Ranking
+	["🏅 Ranking"] = "🏅 Leaderboard",
+	["Ranking"] = "Leaderboard",
+	["Los 10 mejores de todo Roblox. Se actualiza cada 2 minutos"] = "The top 10 in all of Roblox. Updates every 2 minutes",
+	["💰 Más dinero ganado"] = "💰 Most money earned",
+	["🎉 Más jackpots"] = "🎉 Most jackpots",
+	["Todavía no hay nadie. ¡Sé el primero!"] = "Nobody here yet. Be the first!",
+	["El botón de la medalla enseña los 10 jugadores de todo Roblox que más dinero han ganado y los 10 que más jackpots han sacado. Se actualiza cada 2 minutos."] = "The medal button shows the 10 players in all of Roblox who earned the most money and the 10 with the most jackpots. It updates every 2 minutes.",
+	["Cuenta todo lo que has ganado desde que empezaste, aunque te lo gastes o hagas prestigio."] = "It counts everything you've earned since you started, even if you spend it or prestige.",
 	-- Códigos
 	["🔑 Códigos"] = "🔑 Codes",
 	["Escribe un código"] = "Type a code",
@@ -198,7 +207,7 @@ local EXACT = {
 	["Los muebles VIP vienen con el pase VIP de la tienda y no se compran con dinero del juego."] = "VIP furniture comes with the VIP pass from the store and can't be bought with game money.",
 	["El Unicornio (+20%) es exclusivo de la tienda: nunca sale al rascar."] = "The Unicorn (+20%) is a store exclusive: it never drops from scratching.",
 	["🎮 Mando y consolas"] = "🎮 Controller and consoles",
-	["Y abre las mejoras y X la tienda. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo)."] = "Y opens upgrades and X the store. The D-pad opens missions (up), room (right), pets (left) and help (down).",
+	["Y abre las mejoras, X la tienda y LB (L1 en PlayStation) el ranking. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo)."] = "Y opens upgrades, X the store and LB (L1 on PlayStation) the leaderboard. The D-pad opens missions (up), room (right), pets (left) and help (down).",
 	["En los menús, muévete con la cruceta o el stick izquierdo, confirma con A y cierra con B (en PlayStation, X y círculo)."] = "In menus, move with the D-pad or left stick, confirm with A and close with B (on PlayStation, X and circle).",
 	["Rasca moviendo el stick derecho o pulsa A para revelar. Para comprar o rascar, acércate y usa el botón que indica el aviso."] = "Scratch by moving the right stick or press A to reveal. To buy or scratch, get close and use the button the prompt shows.",
 }
