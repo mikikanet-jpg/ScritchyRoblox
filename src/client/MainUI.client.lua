@@ -23,6 +23,7 @@ local PetData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("P
 local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData")) :: any
 local MissionData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MissionData")) :: any
 local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang")) :: any
+local GiftData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GiftData")) :: any
 local Monetization = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Monetization")) :: any
 
 local remotes = {
@@ -1053,6 +1054,10 @@ helpCard(12, "🛒 Tienda", {
 	"🦄 Unicornio: mascota exclusiva con +20% de premios.",
 	"Las misiones de conseguir todas las mascotas y toda la decoración no cuentan lo de la tienda: se completan sin pagar nada.",
 })
+helpCard(13, "🎁 Regalo diario", {
+	"Cada día puedes reclamar un regalo en el botón de la diana. Son 7 regalos que van subiendo y luego vuelven a empezar.",
+	"El premio es dinero y crece con tu nivel: el regalo 7 da 20 veces más que el 1. Si un día no entras, no pierdes nada: sigues por donde ibas.",
+})
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
@@ -1980,6 +1985,14 @@ for _, mission in MissionData.Achievements do
 	addMissionRow(mission, false)
 end
 
+-- Regalo diario, arriba del todo.
+local claimGift = ReplicatedStorage:WaitForChild("ClaimGift") :: RemoteEvent
+local giftRow = createRow(missionsBody, 0, "🎁", Color3.fromRGB(249, 168, 212), Color3.fromRGB(219, 39, 119), function()
+	if GiftData.ready(data) then
+		claimGift:FireServer()
+	end
+end)
+
 local missionsButton = button({
 	AnchorPoint = (roundButtonLayout(3)),
 	Position = select(2, roundButtonLayout(3)),
@@ -2033,14 +2046,33 @@ local function refreshMissions()
 		end
 		readyMissions[mission.id] = ready
 	end
-	missionsDot.Visible = anyReady
+	local giftReady = GiftData.ready(data)
+	giftRow.title.Text = "Regalo diario · Día " .. GiftData.dayIndex(data) .. " de " .. #GiftData.PerLevel
+	giftRow.detail.Text = "Premio: " .. money(GiftData.reward(data))
+	if giftReady then
+		setButton(giftRow, "Reclamar", true, Theme.Green)
+		giftRow.action.TextColor3 = Theme.Bg
+	else
+		setButton(giftRow, "Mañana", false)
+	end
+
+	missionsDot.Visible = anyReady or giftReady
 	missionsStarted = true
 end
 
 for _, name in MissionData.WatchedStats do
 	stat(name).Changed:Connect(refreshMissions)
 end
+stat("GiftDay").Changed:Connect(refreshMissions)
 refreshMissions()
+
+-- El regalo vuelve a estar disponible al cambiar de día, aunque no cambie ninguna estadística.
+task.spawn(function()
+	while true do
+		task.wait(60)
+		refreshMissions()
+	end
+end)
 
 local function refreshTickets()
 	for _, tier in Tiers do

@@ -37,6 +37,8 @@ local STATS = {
 	{ name = "EquippedPet", class = "StringValue", default = "" },
 	{ name = "RoomItems", class = "StringValue", default = "" },
 	{ name = "TableLevel", class = "IntValue", default = 0 },
+	{ name = "GiftDay", class = "IntValue", default = 0 },
+	{ name = "GiftCount", class = "IntValue", default = 0 },
 }
 
 local store

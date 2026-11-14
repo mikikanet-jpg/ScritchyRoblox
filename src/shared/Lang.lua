@@ -159,6 +159,11 @@ local EXACT = {
 	["Habitación"] = "Room",
 	["Ayuda"] = "Help",
 	["RASCA CON EL STICK DERECHO"] = "SCRATCH WITH THE RIGHT STICK",
+	-- Regalo diario
+	["Mañana"] = "Tomorrow",
+	["🎁 Regalo diario"] = "🎁 Daily gift",
+	["Cada día puedes reclamar un regalo en el botón de la diana. Son 7 regalos que van subiendo y luego vuelven a empezar."] = "Every day you can claim a gift with the target button. There are 7 gifts that keep growing, then they start over.",
+	["El premio es dinero y crece con tu nivel: el regalo 7 da 20 veces más que el 1. Si un día no entras, no pierdes nada: sigues por donde ibas."] = "The prize is money and grows with your level: gift 7 gives 20 times more than gift 1. If you miss a day you lose nothing: you continue where you left off.",
 	-- Tienda con Robux
 	["Tienda"] = "Store",
 	["🛒 Tienda"] = "🛒 Store",
@@ -250,6 +255,8 @@ local PATTERNS = {
 	{ "^¡Mesa mejorada: (.+)!$", "Table upgraded: %1!" },
 	{ "^¡Y además (%d+) tickets (.+) gratis!$", "And %1 free %2 tickets!" },
 	{ "^¡Premio cobrado: (%d+)%$!$", "Prize collected: $%1!" },
+	{ "^¡Regalo diario cobrado: (%d+)%$!$", "Daily gift collected: $%1!" },
+	{ "^Regalo diario · Día (%d+) de (%d+)$", "Daily gift · Day %1 of %2" },
 	{ "^SUBES A NIVEL (%d+)$", "LEVEL UP: %1" },
 	{ "^%+(%d+)%$$", "+$%1" },
 	{ "^JACKPOT (.-)! %+(%d+)%$$", "%1 JACKPOT! +$%2" },
