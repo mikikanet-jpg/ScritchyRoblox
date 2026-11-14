@@ -16,7 +16,7 @@ local upgradeTable = newRemote("UpgradeTable")
 buyRoomItem.OnServerEvent:Connect(function(player, itemId)
 	local playerData = player:FindFirstChild("PlayerData")
 	local item = typeof(itemId) == "string" and RoomData.getItem(itemId)
-	if not playerData or not item then
+	if not playerData or not item or item.vip then
 		return
 	end
 

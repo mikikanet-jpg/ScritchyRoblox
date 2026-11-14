@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
@@ -22,6 +23,7 @@ local PetData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("P
 local RoomData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoomData")) :: any
 local MissionData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MissionData")) :: any
 local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang")) :: any
+local Monetization = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Monetization")) :: any
 
 local remotes = {
 	ShowMessage = ReplicatedStorage:WaitForChild("ShowMessage") :: RemoteEvent,
@@ -1018,6 +1020,7 @@ for _, rarityName in { "Common", "Rare", "Epic", "Legendary" } do
 	local rarity = PetData.Rarities[rarityName]
 	table.insert(petLines, rarity.label .. " (" .. rarity.weight .. "% de las que salen): " .. table.concat(names, ", "))
 end
+table.insert(petLines, "El Unicornio (+20%) es exclusivo de la tienda: nunca sale al rascar.")
 helpCard(7, "🐶 Mascotas", petLines)
 local roomLines = {
 	"Abre el botón de la casa para comprar decoración y mejorar la mesa. Todo se queda aunque hagas prestigio. Con otros jugadores, cada uno ve solo su propia decoración.",
@@ -1026,6 +1029,7 @@ for level, info in RoomData.TableLevels do
 	table.insert(roomLines, "Mesa " .. level .. " (" .. money(info.price) .. "): " .. info.name .. ", +" .. math.round(info.bonus * 100) .. "% de premios")
 end
 table.insert(roomLines, "El bonus de la mesa se suma al de la mascota.")
+table.insert(roomLines, "Los muebles VIP vienen con el pase VIP de la tienda y no se compran con dinero del juego.")
 helpCard(8, "🏠 Habitación", roomLines)
 local finalInfo = TicketData.Final
 helpCard(9, "🏆 Tiquet Final", {
@@ -1038,9 +1042,16 @@ helpCard(10, "🎯 Misiones y logros", {
 	"Los logros se cobran una sola vez. Los tickets de Auto Scratch no cuentan como rascados, pero su dinero sí cuenta como ganado.",
 })
 helpCard(11, "🎮 Mando y consolas", {
-	"Y abre las mejoras. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo).",
+	"Y abre las mejoras y X la tienda. La cruceta abre misiones (arriba), habitación (derecha), mascotas (izquierda) y ayuda (abajo).",
 	"En los menús, muévete con la cruceta o el stick izquierdo, confirma con A y cierra con B (en PlayStation, X y círculo).",
 	"Rasca moviendo el stick derecho o pulsa A para revelar. Para comprar o rascar, acércate y usa el botón que indica el aviso.",
+})
+helpCard(12, "🛒 Tienda", {
+	"Pases con Robux: se pagan una vez y son para siempre. Ninguno es al azar, sabes exactamente lo que te llevas.",
+	"⚡ Auto Scratch Turbo: te da Auto Scratch y lo hace el doble de rápido. Con la velocidad al máximo, rasca un ticket cada 0,25 s.",
+	"👑 VIP: tu nombre en dorado con corona, [VIP] en el chat y 3 muebles exclusivos para tu casa.",
+	"🦄 Unicornio: mascota exclusiva con +20% de premios.",
+	"Las misiones de conseguir todas las mascotas y toda la decoración no cuentan lo de la tienda: se completan sin pagar nada.",
 })
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
@@ -1715,6 +1726,76 @@ local function setButton(row: Row, text: string, enabled: boolean, color: Color3
 end
 
 ---------------------------------------------------------------------
+-- Tienda con Robux
+---------------------------------------------------------------------
+
+local ROBUX = utf8.char(0xE002)
+local storeBody = createPanel("Store", "Tienda", "Compras con Robux. Ninguna es al azar: sabes lo que te llevas", 620)
+local storeRows: { [string]: Row } = {}
+local passPrices: { [string]: number } = {}
+
+local function promptPass(pass: any)
+	if Monetization.owns(player, pass.key) then
+		showToast("Ya lo tienes")
+	elseif pass.id == 0 then
+		showToast("Disponible pronto")
+	else
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
+	end
+end
+
+local function refreshStore()
+	for _, pass in Monetization.Passes do
+		local row = storeRows[pass.key]
+		row.title.Text = pass.name
+		row.detail.Text = pass.description
+		if Monetization.owns(player, pass.key) then
+			setButton(row, "Comprado", false)
+			row.action.TextColor3 = Theme.Green
+		elseif pass.id == 0 then
+			setButton(row, "Pronto", false)
+		else
+			local price = passPrices[pass.key]
+			setButton(row, price and (ROBUX .. " " .. price) or "Comprar", true, Theme.Green)
+			row.action.TextColor3 = Theme.Bg
+		end
+	end
+end
+
+for index, pass in Monetization.Passes do
+	storeRows[pass.key] = createRow(storeBody, index, pass.emoji, pass.colorA, pass.colorB, function()
+		promptPass(pass)
+	end)
+	player:GetAttributeChangedSignal("Pass" .. pass.key):Connect(refreshStore)
+	if pass.id ~= 0 then
+		task.spawn(function()
+			local ok, info = pcall(function()
+				return MarketplaceService:GetProductInfo(pass.id, Enum.InfoType.GamePass)
+			end)
+			if ok and info and info.PriceInRobux then
+				passPrices[pass.key] = info.PriceInRobux
+				refreshStore()
+			end
+		end)
+	end
+end
+refreshStore()
+
+local storeButton = button({
+	AnchorPoint = (roundButtonLayout(4)),
+	Position = select(2, roundButtonLayout(4)),
+	Size = select(3, roundButtonLayout(4)),
+	Text = "🛒",
+	TextSize = 22,
+	BackgroundColor3 = Theme.Bg,
+	Radius = 23,
+	Parent = hudGui,
+}, function()
+	openPanel("Store")
+end)
+stroke(Theme.Stroke, 0.2).Parent = storeButton
+
+---------------------------------------------------------------------
 -- Mascotas
 ---------------------------------------------------------------------
 
@@ -1729,7 +1810,11 @@ for index, pet in PetData.Pets do
 	local rarity = PetData.Rarities[pet.rarity]
 	petRows[pet.id] = createRow(petsBody, index, pet.emoji, rarity.color, rarity.dark, function()
 		if not PetData.owns(ownedPets.Value, pet.id) then
-			showToast("Aún no tienes esta mascota")
+			if pet.exclusive then
+				openPanel("Store")
+			else
+				showToast("Aún no tienes esta mascota")
+			end
 		elseif equippedPet.Value == pet.id then
 			equipPetRemote:FireServer("")
 		else
@@ -1752,6 +1837,11 @@ local function refreshPets()
 			else
 				setButton(row, "Equipar", true)
 			end
+		elseif pet.exclusive then
+			row.title.Text = pet.name
+			row.detail.Text = rarity.label .. " · " .. bonusText .. " · Tienda"
+			setButton(row, "Tienda", true, Theme.Amber)
+			row.action.TextColor3 = Theme.Bg
 		else
 			row.title.Text = "???"
 			row.detail.Text = rarity.label .. " · " .. bonusText .. string.format(" · %.1f%%", PetData.share(pet))
@@ -1805,6 +1895,8 @@ for index, item in RoomData.Items do
 	roomRows[item.id] = createRow(roomBody, index, item.emoji, Color3.fromRGB(167, 139, 250), Color3.fromRGB(91, 33, 182), function()
 		if RoomData.owns(roomItems.Value, item.id) then
 			return
+		elseif item.vip then
+			openPanel("Store")
 		elseif stats.Money.Value < item.price then
 			showToast("Te faltan " .. money(item.price - stats.Money.Value))
 		else
@@ -1830,8 +1922,11 @@ local function refreshRoom()
 		row.title.Text = item.name
 		row.detail.Text = item.description
 		if RoomData.owns(roomItems.Value, item.id) then
-			setButton(row, "Comprado", false)
+			setButton(row, item.vip and "Incluido" or "Comprado", false)
 			row.action.TextColor3 = Theme.Green
+		elseif item.vip then
+			setButton(row, "VIP", true, Theme.Amber)
+			row.action.TextColor3 = Theme.Bg
 		else
 			setButton(row, money(item.price), stats.Money.Value >= item.price)
 		end
@@ -2011,7 +2106,11 @@ local function refreshUpgrades()
 	end
 
 	speedRow.title.Text = "Velocidad"
-	speedRow.detail.Text = string.format("Un ticket cada %.1f s", stats.Speed.Value)
+	if Monetization.owns(player, "Turbo") then
+		speedRow.detail.Text = string.format("Un ticket cada %.2f s · Turbo", stats.Speed.Value / 2)
+	else
+		speedRow.detail.Text = string.format("Un ticket cada %.1f s", stats.Speed.Value)
+	end
 	if stats.Speed.Value <= AUTO_SPEED_MIN then
 		setButton(speedRow, "Máxima", false)
 	else
@@ -2073,6 +2172,7 @@ end)
 stats.Luck.Changed:Connect(refreshUpgrades)
 stats.Auto.Changed:Connect(refreshUpgrades)
 stats.Speed.Changed:Connect(refreshUpgrades)
+player:GetAttributeChangedSignal("PassTurbo"):Connect(refreshUpgrades)
 
 stats.GameWon.Changed:Connect(function()
 	refreshLevel()
@@ -2137,6 +2237,7 @@ local SHORTCUTS = {
 	{ key = Enum.KeyCode.DPadRight, panel = "Room", text = "Habitación" },
 	{ key = Enum.KeyCode.DPadLeft, panel = "Pets", text = "Mascotas" },
 	{ key = Enum.KeyCode.DPadDown, panel = "Help", text = "Ayuda" },
+	{ key = Enum.KeyCode.ButtonX, panel = "Store", text = "Tienda" },
 }
 
 for index, shortcut in SHORTCUTS do

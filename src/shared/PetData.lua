@@ -9,6 +9,8 @@ PetData.Rarities = {
 	Rare = { label = "Rara", weight = 22, color = Color3.fromRGB(96, 165, 250), dark = Color3.fromRGB(29, 78, 216) },
 	Epic = { label = "Épica", weight = 7, color = Color3.fromRGB(192, 132, 252), dark = Color3.fromRGB(109, 40, 217) },
 	Legendary = { label = "Legendaria", weight = 1, color = Color3.fromRGB(252, 211, 77), dark = Color3.fromRGB(217, 119, 6) },
+	-- Solo con su pase de la tienda: nunca sale al rascar.
+	Exclusive = { label = "Exclusiva", weight = 0, color = Color3.fromRGB(249, 168, 212), dark = Color3.fromRGB(168, 85, 247) },
 }
 
 -- bonus: premio extra de los tickets mientras la mascota está equipada.
@@ -21,6 +23,7 @@ PetData.Pets = {
 	{ id = "dragon", name = "Dragón", emoji = "🐲", rarity = "Epic", bonus = 0.25, style = "wings", color = Color3.fromRGB(34, 197, 94), accent = Color3.fromRGB(21, 94, 52) },
 	{ id = "alien", name = "Alien", emoji = "👽", rarity = "Epic", bonus = 0.3, style = "antenna", color = Color3.fromRGB(163, 230, 53), accent = Color3.fromRGB(77, 124, 15) },
 	{ id = "phoenix", name = "Fénix dorado", emoji = "🔥", rarity = "Legendary", bonus = 0.5, style = "wings", color = Color3.fromRGB(251, 191, 36), accent = Color3.fromRGB(239, 68, 68), glow = true },
+	{ id = "unicorn", name = "Unicornio", emoji = "🦄", rarity = "Exclusive", bonus = 0.2, style = "horn", color = Color3.fromRGB(253, 242, 248), accent = Color3.fromRGB(244, 114, 182), exclusive = true, pass = "Unicorn" },
 }
 
 function PetData.get(id)
@@ -41,6 +44,17 @@ function PetData.share(pet)
 		end
 	end
 	return PetData.Rarities[pet.rarity].weight / sameRarity
+end
+
+-- Cuántas mascotas se pueden conseguir jugando, sin las de la tienda.
+function PetData.countFree(ownedText)
+	local count = 0
+	for _, pet in PetData.Pets do
+		if not pet.exclusive and (ownedText == nil or PetData.owns(ownedText, pet.id)) then
+			count += 1
+		end
+	end
+	return count
 end
 
 -- Las mascotas de cada jugador se guardan como "cat,fox,dragon".

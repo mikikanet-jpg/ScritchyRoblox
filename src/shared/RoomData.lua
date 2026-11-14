@@ -21,6 +21,10 @@ RoomData.Items = {
 	{ id = "neon", name = "Luces de neón", emoji = "💡", price = 5000, description = "Neón alrededor del techo" },
 	{ id = "arcade", name = "Máquina arcade", emoji = "🕹️", price = 15000, description = "Una máquina arcade con pantalla" },
 	{ id = "trophy", name = "Trofeo dorado", emoji = "🏆", price = 50000, description = "Para que se vea quién manda" },
+	-- Vienen con el pase VIP, no se compran con dinero del juego.
+	{ id = "vip_throne", name = "Trono VIP", emoji = "👑", price = 0, vip = true, description = "Un trono dorado en la esquina" },
+	{ id = "vip_carpet", name = "Alfombra roja VIP", emoji = "🟥", price = 0, vip = true, description = "Alfombra roja desde la puerta" },
+	{ id = "vip_coins", name = "Montaña de monedas VIP", emoji = "💰", price = 0, vip = true, description = "Monedas de oro que brillan" },
 }
 
 function RoomData.getItem(id)
@@ -35,6 +39,17 @@ end
 function RoomData.tableBonus(level)
 	local info = RoomData.TableLevels[level]
 	return info and info.bonus or 0
+end
+
+-- Cuántos objetos se pueden comprar con dinero del juego, sin los VIP.
+function RoomData.countFree(ownedText)
+	local count = 0
+	for _, item in RoomData.Items do
+		if not item.vip and (ownedText == nil or RoomData.owns(ownedText, item.id)) then
+			count += 1
+		end
+	end
+	return count
 end
 
 -- Los objetos de cada jugador se guardan como "rug,sofa".

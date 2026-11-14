@@ -63,6 +63,10 @@ local function buildPet(pet)
 	elseif pet.style == "wings" then
 		addMirrored(model, "Wedge", Vector3.new(0.14, 0.9, 1.3), pet.accent, 1.05, 0.25, 0.3, Vector3.new(0, 0, -0.7))
 		addMirrored(model, "Wedge", Vector3.new(0.18, 0.5, 0.4), pet.accent, 0.42, 0.9, 0, Vector3.new(0, math.pi / 2, -0.2))
+	elseif pet.style == "horn" then
+		addPart(model, "Block", Vector3.new(0.2, 0.9, 0.2), Color3.fromRGB(253, 224, 71), CFrame.new(0, 0.95, -0.5) * CFrame.Angles(-0.45, 0, 0))
+		addMirrored(model, "Wedge", Vector3.new(0.16, 0.45, 0.4), pet.color, 0.45, 0.85, 0.1, Vector3.new(0, math.pi / 2, -0.25))
+		addPart(model, "Block", Vector3.new(0.3, 0.5, 1.1), pet.accent, CFrame.new(0, 0.75, 0.35) * CFrame.Angles(0.3, 0, 0))
 	elseif pet.style == "antenna" then
 		addMirrored(model, "Block", Vector3.new(0.08, 0.7, 0.08), pet.accent, 0.32, 1.05, 0, Vector3.new(0, 0, -0.25))
 		addMirrored(model, "Ball", Vector3.new(0.25, 0.25, 0.25), pet.accent, 0.42, 1.42, 0, Vector3.zero)

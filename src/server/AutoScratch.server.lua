@@ -76,7 +76,9 @@ local function runAutoScratch(player)
 
 	-- El bucle termina cuando el jugador sale.
 	while playerData and player:IsDescendantOf(Players) do
-		task.wait(playerData.AutoScratchSpeed.Value)
+		-- El pase Turbo lo hace el doble de rápido.
+		local turbo = player:GetAttribute("PassTurbo") == true
+		task.wait(playerData.AutoScratchSpeed.Value / (turbo and 2 or 1))
 
 		if player:IsDescendantOf(Players) and playerData.AutoScratch.Value then
 			for _, ticketType in AUTO_ORDER do

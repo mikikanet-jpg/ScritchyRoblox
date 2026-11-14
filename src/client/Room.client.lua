@@ -150,6 +150,52 @@ function builders.trophy(parent)
 	light.Parent = cup
 end
 
+-- Muebles del pase VIP.
+function builders.vip_throne(parent)
+	local x, z = annex.x0 + 4, annex.z0 + 4
+	local gold = Color3.fromRGB(250, 204, 21)
+	local red = Color3.fromRGB(185, 28, 28)
+	block(parent, Vector3.new(4.4, 0.6, 4.4), Vector3.new(x, floorY + 0.3, z), gold, Enum.Material.Metal)
+	block(parent, Vector3.new(3.4, 1.6, 3.2), Vector3.new(x, floorY + 1.4, z), red, Enum.Material.Fabric)
+	block(parent, Vector3.new(3.8, 5.6, 0.6), Vector3.new(x, floorY + 3.4, z - 1.7), gold, Enum.Material.Metal)
+	block(parent, Vector3.new(2.8, 4.2, 0.2), Vector3.new(x, floorY + 3.6, z - 1.35), red, Enum.Material.Fabric)
+	for _, side in { -1, 1 } do
+		block(parent, Vector3.new(0.6, 2.6, 3.2), Vector3.new(x + side * 1.9, floorY + 1.9, z), gold, Enum.Material.Metal)
+	end
+	for _, offset in { -1.2, 0, 1.2 } do
+		local tip = block(parent, Vector3.new(0.6, 0.6, 0.6), Vector3.new(x + offset, floorY + 6.5, z - 1.7), gold, Enum.Material.Neon, Enum.PartType.Ball)
+		tip.CanCollide = false
+	end
+end
+
+function builders.vip_carpet(parent)
+	local z = 154
+	local x0, x1 = annex.x0 + 0.6, centerX - 4
+	local carpet = block(parent, Vector3.new(x1 - x0, 0.14, 4), Vector3.new((x0 + x1) / 2, floorY + 0.08, z), Color3.fromRGB(185, 28, 28), Enum.Material.Fabric)
+	carpet.CanCollide = false
+	for _, side in { -1, 1 } do
+		local edge = block(parent, Vector3.new(x1 - x0, 0.16, 0.3), Vector3.new((x0 + x1) / 2, floorY + 0.09, z + side * 2), Color3.fromRGB(250, 204, 21), Enum.Material.Metal)
+		edge.CanCollide = false
+	end
+end
+
+function builders.vip_coins(parent)
+	local x, z = annex.x1 - 4.5, annex.z0 + 9
+	local gold = Color3.fromRGB(250, 204, 21)
+	local layers = { { 4, 0.5 }, { 3.2, 1.3 }, { 2.3, 2 }, { 1.4, 2.6 } }
+	for _, layer in layers do
+		block(parent, Vector3.new(layer[1], 1, layer[1]), Vector3.new(x, floorY + layer[2], z), gold, Enum.Material.Metal, Enum.PartType.Ball)
+	end
+	local light = Instance.new("PointLight")
+	light.Color = gold
+	light.Range = 12
+	light.Brightness = 1.2
+	light.Parent = block(parent, Vector3.new(0.8, 0.8, 0.8), Vector3.new(x, floorY + 3.2, z), gold, Enum.Material.Neon, Enum.PartType.Ball)
+	local sparkles = Instance.new("Sparkles")
+	sparkles.SparkleColor = gold
+	sparkles.Parent = parent:FindFirstChildWhichIsA("BasePart")
+end
+
 local built = {}
 
 local function refreshItems()

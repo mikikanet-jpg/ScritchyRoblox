@@ -25,7 +25,7 @@ local function pickPet()
 
 	local options = {}
 	for _, pet in PetData.Pets do
-		if pet.rarity == rarity then
+		if pet.rarity == rarity and not pet.exclusive then
 			table.insert(options, pet)
 		end
 	end

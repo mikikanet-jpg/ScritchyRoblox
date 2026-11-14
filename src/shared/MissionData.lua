@@ -22,8 +22,8 @@ MissionData.Achievements = {
 	{ id = "jackpot_1", name = "Tu primer jackpot", emoji = "🎉", stat = "Jackpots", target = 1, reward = 500 },
 	{ id = "jackpot_25", name = "Saca 25 jackpots", emoji = "🎉", stat = "Jackpots", target = 25, reward = 25000 },
 	{ id = "pets_3", name = "Consigue 3 mascotas", emoji = "🐶", counter = "pets", target = 3, reward = 5000 },
-	{ id = "pets_all", name = "Consigue todas las mascotas", emoji = "🐶", counter = "pets", target = #PetData.Pets, reward = 500000 },
-	{ id = "room_all", name = "Compra toda la decoración", emoji = "🏠", counter = "room", target = #RoomData.Items, reward = 50000 },
+	{ id = "pets_all", name = "Consigue todas las mascotas", emoji = "🐶", counter = "pets", target = PetData.countFree(), reward = 500000 },
+	{ id = "room_all", name = "Compra toda la decoración", emoji = "🏠", counter = "room", target = RoomData.countFree(), reward = 50000 },
 	{ id = "prestige_1", name = "Haz tu primer prestigio", emoji = "👑", stat = "Prestige", target = 1, reward = 10000 },
 	{ id = "game_won", name = "Completa el tiquet final", emoji = "🏆", stat = "GameWon", target = 1, reward = 1000000 },
 }
@@ -33,13 +33,6 @@ MissionData.WatchedStats = {
 	"DailyDay", "DailyScratched", "DailyEarned", "DailyJackpots", "DailyClaimed", "ClaimedMissions",
 	"TotalScratched", "TotalEarned", "Jackpots", "OwnedPets", "RoomItems", "Prestige", "GameWon", "TicketLevel",
 }
-
-local function countList(text)
-	if text == "" then
-		return 0
-	end
-	return #string.split(text, ",")
-end
 
 function MissionData.today()
 	return math.floor(os.time() / 86400)
@@ -61,9 +54,9 @@ function MissionData.progress(mission, playerData, isDaily)
 		return 0
 	end
 	if mission.counter == "pets" then
-		return countList(playerData.OwnedPets.Value)
+		return PetData.countFree(playerData.OwnedPets.Value)
 	elseif mission.counter == "room" then
-		return countList(playerData.RoomItems.Value)
+		return RoomData.countFree(playerData.RoomItems.Value)
 	end
 	local value = playerData[mission.stat].Value
 	if value == true then
