@@ -39,6 +39,7 @@ local STATS = {
 	{ name = "TableLevel", class = "IntValue", default = 0 },
 	{ name = "GiftDay", class = "IntValue", default = 0 },
 	{ name = "GiftCount", class = "IntValue", default = 0 },
+	{ name = "RedeemedCodes", class = "StringValue", default = "" },
 }
 
 local store

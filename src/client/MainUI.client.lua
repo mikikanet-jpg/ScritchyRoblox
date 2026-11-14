@@ -1058,6 +1058,10 @@ helpCard(13, "🎁 Regalo diario", {
 	"Cada día puedes reclamar un regalo en el botón de la diana. Son 7 regalos que van subiendo y luego vuelven a empezar.",
 	"El premio es dinero y crece con tu nivel: el regalo 7 da 20 veces más que el 1. Si un día no entras, no pierdes nada: sigues por donde ibas.",
 })
+helpCard(14, "🔑 Códigos", {
+	"En la tienda puedes escribir códigos que regalan dinero del juego. Son gratis y cada uno se usa una sola vez.",
+	"Los códigos nuevos salen en los vídeos del juego.",
+})
 helpCard(6, "👑 Prestigio", {
 	"Disponible en el nivel 20. Vuelves al nivel 1 con $100 y sin tickets.",
 	"A cambio, ganas +1 de suerte y duplicas la XP con cada prestigio. Conservas la suerte, Auto Scratch y su velocidad.",
@@ -1735,7 +1739,7 @@ end
 ---------------------------------------------------------------------
 
 local ROBUX = utf8.char(0xE002)
-local storeBody = createPanel("Store", "Tienda", "Compras con Robux. Ninguna es al azar: sabes lo que te llevas", 620)
+local storeBody = createPanel("Store", "Tienda", "Pases con Robux y códigos de regalo. Nada es al azar", 620)
 local storeRows: { [string]: Row } = {}
 local passPrices: { [string]: number } = {}
 
@@ -1785,6 +1789,55 @@ for index, pass in Monetization.Passes do
 	end
 end
 refreshStore()
+
+-- Códigos de regalo, debajo de los pases.
+local redeemCode = ReplicatedStorage:WaitForChild("RedeemCode") :: RemoteEvent
+local codeFrame = make("Frame", {
+	Size = UDim2.new(1, 0, 0, 96),
+	BackgroundColor3 = Theme.Surface,
+	LayoutOrder = 100,
+	Parent = storeBody,
+}, { corner(14), stroke(Theme.Stroke, 0.55) })
+label({
+	Position = UDim2.fromOffset(14, 10),
+	Size = UDim2.new(1, -28, 0, 22),
+	Text = "🔑 Códigos",
+	Font = FONT_BOLD,
+	TextSize = 17,
+	Parent = codeFrame,
+})
+local codeBox = make("TextBox", {
+	Position = UDim2.fromOffset(12, 40),
+	Size = UDim2.new(1, -148, 0, 44),
+	BackgroundColor3 = Theme.SurfaceHigh,
+	Text = "",
+	PlaceholderText = Lang.t("Escribe un código"),
+	PlaceholderColor3 = Theme.Muted,
+	TextColor3 = Theme.Text,
+	Font = FONT_BOLD,
+	TextSize = 16,
+	ClearTextOnFocus = false,
+	Parent = codeFrame,
+}, { corner(10), padding(12, 0) }) :: TextBox
+local function sendCode()
+	if codeBox.Text ~= "" then
+		redeemCode:FireServer(codeBox.Text)
+		codeBox.Text = ""
+	end
+end
+button({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -12, 0, 40),
+	Size = UDim2.fromOffset(112, 44),
+	Text = "Canjear",
+	BackgroundColor3 = Theme.Accent,
+	Parent = codeFrame,
+}, sendCode)
+codeBox.FocusLost:Connect(function(enterPressed: boolean)
+	if enterPressed then
+		sendCode()
+	end
+end)
 
 local storeButton = button({
 	AnchorPoint = (roundButtonLayout(4)),
